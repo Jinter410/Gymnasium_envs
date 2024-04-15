@@ -28,11 +28,14 @@ class StaticCrowdEnv(gym.Env):
         self.HEIGHT = height
         self.W_BORDER = self.WIDTH / 2
         self.H_BORDER = self.HEIGHT / 2
-        self.MAX_LINEAR_VEL = 3.0 # m/s
-        self.MAX_ANGULAR_VEL = 1.5 # rad/s
         self.PHS = 0.4
         self.PRS = 1.4
         self.SCS = 1.9
+        # Physics
+        self._dt = 0.1
+        self.MAX_LINEAR_VEL = 3.0 # m/s
+        self.MAX_ANGULAR_VEL = 1.5 # rad/s
+        self.MAX_GOAL_VEL = 0.5 # m/s
         # Reward constants
         self.COLLISION_REWARD = -10
         self.Cc = 2 * self.PHS * \
@@ -58,11 +61,16 @@ class StaticCrowdEnv(gym.Env):
         self.render_mode = render_mode
         self.window = None
         self.clock = None
+        
 
     def reset(self, seed=None, options=None):
         # Seeding
         super().reset(seed=seed)
+
+        # Episode variables
         self._steps = 0
+        self._goal_reached = False
+        self._is_collided = False
 
         # Agent state
         self.agent_pos = np.zeros(2)
@@ -89,17 +97,17 @@ class StaticCrowdEnv(gym.Env):
                         np.any(np.linalg.norm(self.crowd_poss[:, None] - self.crowd_poss[None, :], axis=-1)[np.triu_indices(self.N_CROWD, k=1)] < self.PHS * 2)
         
         observation = self._get_obs()
-        # info = self._get_info()
+        info = self._get_info()
 
-        # if self.render_mode == "human":
-        #     self._render_frame()
+        if self.render_mode == "human":
+            self._render_frame()
 
-        return observation, {}
+        return observation, info
     
     def _get_obs(self):
         # Vectorized ray distances
         default_distances = np.min([self.W_BORDER / np.abs(self.RAY_COS), self.H_BORDER / np.abs(self.RAY_SIN)], axis=0)
-        x_crowd, y_crowd = self.crowd_poss
+        x_crowd, y_crowd = self.crowd_poss[:, 0], self.crowd_poss[:, 1]
         orthog_dist = np.abs(np.outer(x_crowd, self.RAY_SIN) - np.outer(y_crowd, self.RAY_COS)) # Orthogonal distances from obstacles to rays
         intersections_mask = orthog_dist <= self.PHS # Mask for intersections
         along_dist = np.outer(x_crowd, self.RAY_COS) + np.outer(y_crowd, self.RAY_SIN) # Distance along ray to orthogonal projection
@@ -115,7 +123,132 @@ class StaticCrowdEnv(gym.Env):
 
         return np.concatenate([ray_distances, agent_state, goal_rel_pos])
         
+    def step(self, action):
+        # Update agent state
+        self.agent_vel = np.clip(action, -self.MAX_LINEAR_VEL, self.MAX_LINEAR_VEL)
+        self.agent_pos += self.agent_vel * self._dt
+        
+        terminated = self._terminate()
+        reward = self._get_reward()
+        info = self._get_info()
+        observation = self._get_obs()
+        self._steps += 1
 
+        if self.render_mode == "human":
+            self._render_frame()
+
+        return observation, reward, terminated, info
+    
+    def _get_reward(self):
+        if self._goal_reached:
+            return self.TASK_COMPLETION_REWARD
+        if self._is_collided:
+            return self.COLLISION_REWARD
+        
+        dg = np.linalg.norm(self.agent_pos - self.goal_pos)
+        # Goal distance reward
+        Rg = -self.Cg * dg
+        # Crowd distance reward
+        dist_crowd = np.linalg.norm(self.agent_pos - self.crowd_poss, axis=-1)
+        Rc = np.sum(
+            (1 - np.exp(self.Cc / dist_crowd)) *\
+            (dist_crowd < [self.SCS + self.PHS] * self.N_CROWD)
+        )
+        # Walls distance reward
+        dist_walls = np.array([
+            self.W_BORDER - abs(self.agent_pos[0]),
+            self.H_BORDER - abs(self.agent_pos[1])
+        ])
+        Rw = np.sum(
+            (1 - np.exp(self.Cc / dist_walls)) * (dist_walls < self.PHS * 2)
+        )
+        return Rg + Rc + Rw
+    
+    def _terminate(self):
+        # Check for collisions with crowd
+        if np.any(np.linalg.norm(self.agent_pos - self.crowd_poss, axis=1) < self.PHS * 2):
+            self._is_collided = True
+
+        # Check for collisions with walls
+        if np.any(np.abs(self.agent_pos) > np.array([self.W_BORDER, self.H_BORDER]) - self.PHS):
+            self._is_collided = True
+
+        # Check for goal reached
+        if (np.linalg.norm(self.agent_pos - self.goal_pos) < self.PHS) and \
+            (np.linalg.norm(self.agent_vel) < self.MAX_GOAL_VEL):
+            self._goal_reached = True
+        return self._goal_reached or self._is_collided or self._steps >= self.MAX_EPISODE_STEPS
+    
+    def _get_info(self):
+        return {
+            "goal_reached": self._goal_reached, 
+            "collision": self._is_collided, 
+            "steps": self._steps, 
+            "dist_to_goal": np.linalg.norm(self.agent_pos - self.goal_pos)
+        }
+    
+    def render(self):
+        if self.render_mode == "human":
+            return self._render_frame()
+    
+    def _render_frame(self):
+        if self.window is None and self.render_mode == "human":
+            pygame.init()
+            self.window = pygame.display.set_mode((self.WIDTH * 50, self.HEIGHT * 50))
+            self.clock = pygame.time.Clock()
+
+        self.window.fill((255, 255, 255))
+
+        # Agent
+        agent_color = (0, 255, 0)
+        agent_center = (
+            int((self.agent_pos[0] + self.W_BORDER) * 50),
+            int((self.agent_pos[1] + self.H_BORDER) * 50)
+        )
+        agent_radius = self.PHS * 50
+        pygame.draw.circle(self.window, agent_color, agent_center, agent_radius)
+
+        # Goal
+        goal_color = (0, 0, 255)
+        goal_pos_x = int((self.goal_pos[0] + self.W_BORDER) * 50)
+        goal_pos_y = int((self.goal_pos[1] + self.H_BORDER) * 50)
+        pygame.draw.line(self.window, goal_color, (goal_pos_x - 10, goal_pos_y - 10), (goal_pos_x + 10, goal_pos_y + 10), 2)
+        pygame.draw.line(self.window, goal_color, (goal_pos_x - 10, goal_pos_y + 10), (goal_pos_x + 10, goal_pos_y - 10), 2)
+
+        # Crowd
+        crowd_color = (255, 0, 0)  # Red
+        for pos in self.crowd_poss:
+            crowd_center = (
+            int((pos[0] + self.W_BORDER) * 50),
+            int((pos[1] + self.H_BORDER) * 50)
+            )
+            # Physical space
+            crowd_phs = int(self.PHS * 50)
+            pygame.draw.circle(self.window, crowd_color, crowd_center, crowd_phs)
+
+            # Personal space
+            crowd_prs = int(self.PRS * 50)
+            pygame.draw.circle(self.window, crowd_color, crowd_center, crowd_prs, 1)
+
+            # Draw dotted circle
+            crowd_scs = int(self.SCS * 50)
+            pygame.draw.circle(self.window, crowd_color, crowd_center, crowd_scs, 1)
+            pygame.draw.circle(self.window, crowd_color, crowd_center, crowd_scs, 1, 1)
+
+        pygame.display.flip()  # Update the full display surface to the screen
+        self.clock.tick(60)  # Limit frames per second
+    
+    def close(self):
+        if self.window is not None:
+            pygame.display.quit()
+            pygame.quit()
+    
 if __name__ == "__main__":
-    env = StaticCrowdEnv(n_rays=360, n_crowd=30)
-    print(env.reset())
+    env = StaticCrowdEnv(n_rays=360, n_crowd=30, render_mode="human")
+    observation = env.reset()
+    done = False
+    while not done:
+        action = env.action_space.sample()
+        observation, reward, done, info = env.step(action)
+        env.render()
+    env.close()
