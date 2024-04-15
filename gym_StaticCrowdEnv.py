@@ -3,12 +3,6 @@ from gymnasium import spaces
 import pygame
 import numpy as np
 
-class Ray:
-    def __init__(self, angle):
-        self.angle = angle
-        self.cos = np.cos(angle)
-        self.sin = np.sin(angle)
-
 class StaticCrowdEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"]}
 
@@ -27,7 +21,9 @@ class StaticCrowdEnv(gym.Env):
         self.N_CROWD = n_crowd
         self.INTERCEPTOR_PERCENTAGE = interceptor_percentage
         self.N_RAYS = n_rays
-        self.RAYS = [Ray(angle) for angle in np.linspace(0, 2 * np.pi, n_rays, endpoint=False)]
+        self.RAY_ANGLES = np.linspace(0, 2 * np.pi, n_rays, endpoint=False) + 1e-6 # To avoid div by zero
+        self.RAY_COS = np.cos(self.RAY_ANGLES)
+        self.RAY_SIN = np.sin(self.RAY_ANGLES)
         self.WIDTH = width
         self.HEIGHT = height
         self.W_BORDER = self.WIDTH / 2
@@ -62,9 +58,74 @@ class StaticCrowdEnv(gym.Env):
         self.render_mode = render_mode
         self.window = None
         self.clock = None
+
+    def reset(self, seed=None, options=None):
+        # Seeding
+        super().reset(seed=seed)
+        self._steps = 0
+
+        # Agent state
+        self.agent_pos = np.zeros(2)
+        self.agent_vel = np.zeros(2)
+
+        # Goal state
+        self.goal_pos = np.random.uniform(
+           [-self.W_BORDER + self.PHS, -self.H_BORDER + self.PHS],
+           [self.W_BORDER - self.PHS, self.H_BORDER - self.PHS]
+        )
+
+        # Crowd state
+        self.crowd_poss = np.zeros((self.N_CROWD, 2))
+        collision = True 
+        while collision:
+            self.crowd_poss = np.random.uniform(
+                [-self.W_BORDER, -self.H_BORDER],
+                [self.W_BORDER, self.H_BORDER],
+                (self.N_CROWD, 2)
+            )
+            # Check for agent, goal and crowd collisions
+            collision = np.any(np.linalg.norm(self.crowd_poss - self.agent_pos, axis=1) < self.PRS * 2) or \
+                        np.any(np.linalg.norm(self.crowd_poss - self.goal_pos, axis=1) < self.PRS * 2) or \
+                        np.any(np.linalg.norm(self.crowd_poss[:, None] - self.crowd_poss[None, :], axis=-1)[np.triu_indices(self.N_CROWD, k=1)] < self.PHS * 2)
+        
+        observation = self._get_obs()
+        # info = self._get_info()
+
+        # if self.render_mode == "human":
+        #     self._render_frame()
+
+        return observation, {}
     
     def _get_obs(self):
-        # Ray distances
-        angles = np.array([self.RAYS[i].cos, self.RAYS[i].sin] for i in range(self.N_RAYS))
-        default_distances = np.min([self.W_BORDER, self.H_BORDER] / np.abs(angles), axis=-1) # Distances to borders
+        print(self.RAY_COS)
+        # Vectorized ray distances
+        default_distances = np.min([self.W_BORDER / np.abs(self.RAY_COS), self.H_BORDER / np.abs(self.RAY_SIN)], axis=0)
         
+        return self.crowd_poss
+        # TODO
+        D_ortho = np.abs(np.outer(positions_x, sin_angles) - np.outer(positions_y, cos_angles)) 
+        
+        # Calcul vectorisé des intersections avec les cercles
+        intersections = D_ortho <= rayons[:, None]
+        
+        # Calcul vectorisé de la distance le long du rayon jusqu'à la projection orthogonale
+        D_along_ray = np.outer(positions_x, cos_angles) + np.outer(positions_y, sin_angles)
+        
+        # Calcul vectorisé de la distance du centre du cercle à l'intersection avec le rayon
+        D_to_intersection = np.sqrt(np.maximum(rayons[:, None]**2 - D_ortho**2, 0))
+        
+        # Calcul vectorisé de la distance totale du rayon à l'intersection
+        distances = np.where(intersections, D_along_ray - D_to_intersection, np.inf)
+        
+        # Trouver la distance minimale pour chaque rayon
+        min_distances = np.min(np.where(distances > 0, distances, np.inf), axis=0)
+        
+        # Comparer avec la distance par défaut
+        final_distances = np.minimum(min_distances, default_distances)
+        
+        return final_distances
+        
+
+if __name__ == "__main__":
+    env = StaticCrowdEnv(n_rays=360, n_crowd=30)
+    print(env.reset())
