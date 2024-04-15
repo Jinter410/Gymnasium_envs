@@ -13,7 +13,7 @@ class StaticCrowdEnv(gym.Env):
         width: int = 20,
         height: int = 20,
         interceptor_percentage: float = 0.5,
-        max_steps: int = 100,
+        max_steps: int = 10000,
         render_mode: str = None,
     ):
         # Environment constants
@@ -95,7 +95,7 @@ class StaticCrowdEnv(gym.Env):
             collision = np.any(np.linalg.norm(self.crowd_poss - self.agent_pos, axis=1) < self.PRS * 2) or \
                         np.any(np.linalg.norm(self.crowd_poss - self.goal_pos, axis=1) < self.PRS * 2) or \
                         np.any(np.linalg.norm(self.crowd_poss[:, None] - self.crowd_poss[None, :], axis=-1)[np.triu_indices(self.N_CROWD, k=1)] < self.PHS * 2)
-        
+
         observation = self._get_obs()
         info = self._get_info()
 
@@ -106,11 +106,14 @@ class StaticCrowdEnv(gym.Env):
     
     def _get_obs(self):
         # Vectorized ray distances
-        default_distances = np.min([self.W_BORDER / np.abs(self.RAY_COS), self.H_BORDER / np.abs(self.RAY_SIN)], axis=0)
-        x_crowd, y_crowd = self.crowd_poss[:, 0], self.crowd_poss[:, 1]
-        orthog_dist = np.abs(np.outer(x_crowd, self.RAY_SIN) - np.outer(y_crowd, self.RAY_COS)) # Orthogonal distances from obstacles to rays
+        default_distances = np.min([
+            (self.W_BORDER - np.where(self.RAY_COS > 0, self.agent_pos[0], -self.agent_pos[0])) / np.abs(self.RAY_COS),
+            (self.H_BORDER - np.where(self.RAY_SIN > 0, self.agent_pos[1], -self.agent_pos[1])) / np.abs(self.RAY_SIN)
+        ], axis=0)
+        x_crowd_rel, y_crowd_rel = self.crowd_poss[:, 0] - self.agent_pos[0], self.crowd_poss[:, 1] - self.agent_pos[1]
+        orthog_dist = np.abs(np.outer(x_crowd_rel, self.RAY_SIN) - np.outer(y_crowd_rel, self.RAY_COS)) # Orthogonal distances from obstacles to rays
         intersections_mask = orthog_dist <= self.PHS # Mask for intersections
-        along_dist = np.outer(x_crowd, self.RAY_COS) + np.outer(y_crowd, self.RAY_SIN) # Distance along ray to orthogonal projection
+        along_dist = np.outer(x_crowd_rel, self.RAY_COS) + np.outer(y_crowd_rel, self.RAY_SIN) # Distance along ray to orthogonal projection
         orthog_to_intersect_dist = np.sqrt(np.maximum(self.PHS**2 - orthog_dist**2, 0)) # Distance from orthogonal projection to intersection
         intersect_distances = np.where(intersections_mask, along_dist - orthog_to_intersect_dist, np.inf) # Distances from ray to intersection if existing
         min_intersect_distances = np.min(np.where(intersect_distances > 0, intersect_distances, np.inf), axis=0) # Minimum distance for each ray to have the closest intersection
@@ -120,6 +123,8 @@ class StaticCrowdEnv(gym.Env):
         agent_state = np.concatenate([self.agent_pos, self.agent_vel])
         # Goal relative position
         goal_rel_pos = self.goal_pos - self.agent_pos
+        # Store ray distances
+        self.ray_distances = ray_distances
 
         return np.concatenate([ray_distances, agent_state, goal_rel_pos])
         
@@ -197,7 +202,7 @@ class StaticCrowdEnv(gym.Env):
             self.window = pygame.display.set_mode((self.WIDTH * 50, self.HEIGHT * 50))
             self.clock = pygame.time.Clock()
 
-        self.window.fill((255, 255, 255))
+        self.window.fill((245,245,245))
 
         # Agent
         agent_color = (0, 255, 0)
@@ -228,12 +233,23 @@ class StaticCrowdEnv(gym.Env):
 
             # Personal space
             crowd_prs = int(self.PRS * 50)
-            pygame.draw.circle(self.window, crowd_color, crowd_center, crowd_prs, 1)
+            pygame.draw.circle(self.window, crowd_color, crowd_center, crowd_prs, 2)
 
             # Draw dotted circle
             crowd_scs = int(self.SCS * 50)
             pygame.draw.circle(self.window, crowd_color, crowd_center, crowd_scs, 1)
-            pygame.draw.circle(self.window, crowd_color, crowd_center, crowd_scs, 1, 1)
+
+        
+        # Wall borders
+        wall_color = (0, 0, 0)
+        pygame.draw.rect(self.window, wall_color, (self.PHS * 50, self.PHS * 50, (self.WIDTH - 2 * self.PHS) * 50, (self.HEIGHT - 2 * self.PHS) * 50), 1)
+
+        # Rays
+        ray_color = (128, 128, 128)  # Gray
+        for angle, distance in zip(self.RAY_ANGLES, self.ray_distances):
+            end_x = agent_center[0] + distance * 50 * np.cos(angle)
+            end_y = agent_center[1] + distance * 50 * np.sin(angle)
+            pygame.draw.line(self.window, ray_color, agent_center, (int(end_x), int(end_y)), 1)
 
         pygame.display.flip()  # Update the full display surface to the screen
         self.clock.tick(60)  # Limit frames per second
@@ -244,7 +260,7 @@ class StaticCrowdEnv(gym.Env):
             pygame.quit()
     
 if __name__ == "__main__":
-    env = StaticCrowdEnv(n_rays=360, n_crowd=30, render_mode="human")
+    env = StaticCrowdEnv(n_rays=180, n_crowd=4, render_mode="human")
     observation = env.reset()
     done = False
     while not done:
