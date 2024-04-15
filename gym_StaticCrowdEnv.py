@@ -97,33 +97,23 @@ class StaticCrowdEnv(gym.Env):
         return observation, {}
     
     def _get_obs(self):
-        print(self.RAY_COS)
         # Vectorized ray distances
         default_distances = np.min([self.W_BORDER / np.abs(self.RAY_COS), self.H_BORDER / np.abs(self.RAY_SIN)], axis=0)
+        x_crowd, y_crowd = self.crowd_poss
+        orthog_dist = np.abs(np.outer(x_crowd, self.RAY_SIN) - np.outer(y_crowd, self.RAY_COS)) # Orthogonal distances from obstacles to rays
+        intersections_mask = orthog_dist <= self.PHS # Mask for intersections
+        along_dist = np.outer(x_crowd, self.RAY_COS) + np.outer(y_crowd, self.RAY_SIN) # Distance along ray to orthogonal projection
+        orthog_to_intersect_dist = np.sqrt(np.maximum(self.PHS**2 - orthog_dist**2, 0)) # Distance from orthogonal projection to intersection
+        intersect_distances = np.where(intersections_mask, along_dist - orthog_to_intersect_dist, np.inf) # Distances from ray to intersection if existing
+        min_intersect_distances = np.min(np.where(intersect_distances > 0, intersect_distances, np.inf), axis=0) # Minimum distance for each ray to have the closest intersection
+        ray_distances = np.minimum(min_intersect_distances, default_distances) # If no intersection, rays collide with border
         
-        return self.crowd_poss
-        # TODO
-        D_ortho = np.abs(np.outer(positions_x, sin_angles) - np.outer(positions_y, cos_angles)) 
-        
-        # Calcul vectorisé des intersections avec les cercles
-        intersections = D_ortho <= rayons[:, None]
-        
-        # Calcul vectorisé de la distance le long du rayon jusqu'à la projection orthogonale
-        D_along_ray = np.outer(positions_x, cos_angles) + np.outer(positions_y, sin_angles)
-        
-        # Calcul vectorisé de la distance du centre du cercle à l'intersection avec le rayon
-        D_to_intersection = np.sqrt(np.maximum(rayons[:, None]**2 - D_ortho**2, 0))
-        
-        # Calcul vectorisé de la distance totale du rayon à l'intersection
-        distances = np.where(intersections, D_along_ray - D_to_intersection, np.inf)
-        
-        # Trouver la distance minimale pour chaque rayon
-        min_distances = np.min(np.where(distances > 0, distances, np.inf), axis=0)
-        
-        # Comparer avec la distance par défaut
-        final_distances = np.minimum(min_distances, default_distances)
-        
-        return final_distances
+        # Agent state
+        agent_state = np.concatenate([self.agent_pos, self.agent_vel])
+        # Goal relative position
+        goal_rel_pos = self.goal_pos - self.agent_pos
+
+        return np.concatenate([ray_distances, agent_state, goal_rel_pos])
         
 
 if __name__ == "__main__":
