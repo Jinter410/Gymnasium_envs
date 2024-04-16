@@ -4,7 +4,7 @@ import pygame
 import numpy as np
 
 class StaticCrowdEnv(gym.Env):
-    metadata = {"render_modes": ["human", "rgb_array"]}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 60}
 
     def __init__(
         self,
@@ -72,6 +72,7 @@ class StaticCrowdEnv(gym.Env):
         # Episode variables
         self._steps = 0
         self._reward = 0
+        self._total_reward = 0
         self._goal_reached = False
         self._is_collided = False
 
@@ -142,6 +143,7 @@ class StaticCrowdEnv(gym.Env):
         observation = self._get_obs()
         self._steps += 1
         self._reward = reward
+        self._total_reward += reward
 
         if self.render_mode == "human":
             self._render_frame()
@@ -206,7 +208,7 @@ class StaticCrowdEnv(gym.Env):
             self.window = pygame.display.set_mode((self.WIDTH * self.RATIO, self.HEIGHT * self.RATIO))
             self.clock = pygame.time.Clock()
 
-        pygame.display.set_caption(f"Steps: {self._steps} Reward: {self._reward:.5f}")
+        pygame.display.set_caption(f"Steps: {self._steps} Reward: {self._reward:.5f} Total Reward: {self._total_reward:.3f}")
         
         self.window.fill((245,245,245))
 
