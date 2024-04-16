@@ -13,7 +13,7 @@ class StaticCrowdEnv(gym.Env):
         width: int = 20,
         height: int = 20,
         interceptor_percentage: float = 0.5,
-        max_steps: int = 10000,
+        max_steps: int = 300,
         render_mode: str = None,
     ):
         # Environment constants
@@ -49,11 +49,12 @@ class StaticCrowdEnv(gym.Env):
             low=-action_bound, high=action_bound, shape=action_bound.shape
         )
         # Observation space
-        agent_bounds = np.array([self.WIDTH, self.HEIGHT, self.MAX_LINEAR_VEL, self.MAX_LINEAR_VEL])
+        agent_bounds = np.array([self.W_BORDER, self.H_BORDER, self.MAX_LINEAR_VEL, self.MAX_LINEAR_VEL])
+        goal_bounds = np.array([self.W_BORDER, self.H_BORDER])
         ray_bounds = np.array([np.sqrt(self.WIDTH**2 + self.HEIGHT**2)] * self.N_RAYS)
         self.observation_space = spaces.Box(
-            low=np.concatenate([-agent_bounds, np.full(self.N_RAYS, 0)]),
-            high=np.concatenate([agent_bounds, ray_bounds]),
+            low=np.concatenate([-agent_bounds, -goal_bounds, np.full(self.N_RAYS, 0)]),
+            high=np.concatenate([agent_bounds, goal_bounds, ray_bounds]),
             dtype=np.float32
         )
         # Plotting
@@ -70,6 +71,7 @@ class StaticCrowdEnv(gym.Env):
 
         # Episode variables
         self._steps = 0
+        self._reward = 0
         self._goal_reached = False
         self._is_collided = False
 
@@ -127,7 +129,7 @@ class StaticCrowdEnv(gym.Env):
         # Store ray distances
         self.ray_distances = ray_distances
 
-        return np.concatenate([ray_distances, agent_state, goal_rel_pos])
+        return np.concatenate([agent_state, goal_rel_pos, ray_distances]).astype(np.float32)
         
     def step(self, action):
         # Update agent state
@@ -139,11 +141,12 @@ class StaticCrowdEnv(gym.Env):
         info = self._get_info()
         observation = self._get_obs()
         self._steps += 1
+        self._reward = reward
 
         if self.render_mode == "human":
             self._render_frame()
 
-        return observation, reward, terminated, info
+        return observation, reward, terminated, False, info
     
     def _get_reward(self):
         if self._goal_reached:
@@ -203,6 +206,8 @@ class StaticCrowdEnv(gym.Env):
             self.window = pygame.display.set_mode((self.WIDTH * self.RATIO, self.HEIGHT * self.RATIO))
             self.clock = pygame.time.Clock()
 
+        pygame.display.set_caption(f"Steps: {self._steps} Reward: {self._reward:.5f}")
+        
         self.window.fill((245,245,245))
 
         # Agent
@@ -274,6 +279,6 @@ if __name__ == "__main__":
     done = False
     while not done:
         action = env.action_space.sample()
-        observation, reward, done, info = env.step(action)
+        observation, reward, done, truncated, info = env.step(action)
         env.render()
     env.close()
