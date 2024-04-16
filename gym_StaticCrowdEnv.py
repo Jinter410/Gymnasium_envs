@@ -56,11 +56,12 @@ class StaticCrowdEnv(gym.Env):
             high=np.concatenate([agent_bounds, ray_bounds]),
             dtype=np.float32
         )
-        # Plotting variables
+        # Plotting
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
         self.window = None
         self.clock = None
+        self.RATIO = 30
         
 
     def reset(self, seed=None, options=None):
@@ -199,7 +200,7 @@ class StaticCrowdEnv(gym.Env):
     def _render_frame(self):
         if self.window is None and self.render_mode == "human":
             pygame.init()
-            self.window = pygame.display.set_mode((self.WIDTH * 50, self.HEIGHT * 50))
+            self.window = pygame.display.set_mode((self.WIDTH * self.RATIO, self.HEIGHT * self.RATIO))
             self.clock = pygame.time.Clock()
 
         self.window.fill((245,245,245))
@@ -207,16 +208,18 @@ class StaticCrowdEnv(gym.Env):
         # Agent
         agent_color = (0, 255, 0)
         agent_center = (
-            int((self.agent_pos[0] + self.W_BORDER) * 50),
-            int((self.agent_pos[1] + self.H_BORDER) * 50)
+            int((self.agent_pos[0] + self.W_BORDER) * self.RATIO),
+            int((self.agent_pos[1] + self.H_BORDER) * self.RATIO)
         )
-        agent_radius = self.PHS * 50
-        pygame.draw.circle(self.window, agent_color, agent_center, agent_radius)
+        agent_radius = self.PHS * self.RATIO
+        arrow_pos = (agent_center[0] + int(self.agent_vel[0] * self.RATIO), 
+                agent_center[1] + int(self.agent_vel[1] * self.RATIO))
+        
 
         # Goal
         goal_color = (0, 0, 255)
-        goal_pos_x = int((self.goal_pos[0] + self.W_BORDER) * 50)
-        goal_pos_y = int((self.goal_pos[1] + self.H_BORDER) * 50)
+        goal_pos_x = int((self.goal_pos[0] + self.W_BORDER) * self.RATIO)
+        goal_pos_y = int((self.goal_pos[1] + self.H_BORDER) * self.RATIO)
         pygame.draw.line(self.window, goal_color, (goal_pos_x - 10, goal_pos_y - 10), (goal_pos_x + 10, goal_pos_y + 10), 2)
         pygame.draw.line(self.window, goal_color, (goal_pos_x - 10, goal_pos_y + 10), (goal_pos_x + 10, goal_pos_y - 10), 2)
 
@@ -224,35 +227,41 @@ class StaticCrowdEnv(gym.Env):
         crowd_color = (255, 0, 0)  # Red
         for pos in self.crowd_poss:
             crowd_center = (
-            int((pos[0] + self.W_BORDER) * 50),
-            int((pos[1] + self.H_BORDER) * 50)
+            int((pos[0] + self.W_BORDER) * self.RATIO),
+            int((pos[1] + self.H_BORDER) * self.RATIO)
             )
             # Physical space
-            crowd_phs = int(self.PHS * 50)
+            crowd_phs = int(self.PHS * self.RATIO)
             pygame.draw.circle(self.window, crowd_color, crowd_center, crowd_phs)
 
             # Personal space
-            crowd_prs = int(self.PRS * 50)
+            crowd_prs = int(self.PRS * self.RATIO)
             pygame.draw.circle(self.window, crowd_color, crowd_center, crowd_prs, 2)
 
             # Draw dotted circle
-            crowd_scs = int(self.SCS * 50)
+            crowd_scs = int(self.SCS * self.RATIO)
             pygame.draw.circle(self.window, crowd_color, crowd_center, crowd_scs, 1)
 
         
         # Wall borders
         wall_color = (0, 0, 0)
-        pygame.draw.rect(self.window, wall_color, (self.PHS * 50, self.PHS * 50, (self.WIDTH - 2 * self.PHS) * 50, (self.HEIGHT - 2 * self.PHS) * 50), 1)
+        pygame.draw.rect(self.window, wall_color, (self.PHS * self.RATIO, self.PHS * self.RATIO, (self.WIDTH - 2 * self.PHS) * self.RATIO, (self.HEIGHT - 2 * self.PHS) * self.RATIO), 1)
 
         # Rays
         ray_color = (128, 128, 128)  # Gray
         for angle, distance in zip(self.RAY_ANGLES, self.ray_distances):
-            end_x = agent_center[0] + distance * 50 * np.cos(angle)
-            end_y = agent_center[1] + distance * 50 * np.sin(angle)
+            end_x = agent_center[0] + distance * self.RATIO * np.cos(angle)
+            end_y = agent_center[1] + distance * self.RATIO * np.sin(angle)
             pygame.draw.line(self.window, ray_color, agent_center, (int(end_x), int(end_y)), 1)
 
-        pygame.display.flip()  # Update the full display surface to the screen
-        self.clock.tick(60)  # Limit frames per second
+        # Draw agent above rays
+        pygame.draw.circle(self.window, agent_color, agent_center, agent_radius)
+        pygame.draw.line(self.window, (0, 150, 0), agent_center, arrow_pos, 3)
+        # Dessiner les ailes de la flèche
+
+        
+        pygame.display.flip()
+        self.clock.tick(60)
     
     def close(self):
         if self.window is not None:
