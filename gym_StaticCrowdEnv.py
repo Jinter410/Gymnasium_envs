@@ -13,7 +13,7 @@ class StaticCrowdEnv(gym.Env):
         width: int = 20,
         height: int = 20,
         interceptor_percentage: float = 0.5,
-        max_steps: int = 300,
+        max_steps: int = 150,
         render_mode: str = None,
     ):
         # Environment constants
@@ -44,7 +44,7 @@ class StaticCrowdEnv(gym.Env):
             np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2)
         self.TASK_COMPLETION_REWARD = -self.COLLISION_REWARD / 2
         # Action space (linear and angular velocity)
-        action_bound = np.array([self.MAX_LINEAR_VEL, self.MAX_ANGULAR_VEL])
+        action_bound = np.array([self.MAX_LINEAR_VEL, self.MAX_LINEAR_VEL]) #TODO
         self.action_space = spaces.Box(
             low=-action_bound, high=action_bound, shape=action_bound.shape
         )
@@ -142,13 +142,14 @@ class StaticCrowdEnv(gym.Env):
         info = self._get_info()
         observation = self._get_obs()
         self._steps += 1
+        truncated = self._steps >= self.MAX_EPISODE_STEPS
         self._reward = reward
         self._total_reward += reward
 
         if self.render_mode == "human":
             self._render_frame()
 
-        return observation, reward, terminated, False, info
+        return observation, reward, terminated, truncated, info
     
     def _get_reward(self):
         if self._goal_reached:
@@ -158,7 +159,7 @@ class StaticCrowdEnv(gym.Env):
         
         dg = np.linalg.norm(self.agent_pos - self.goal_pos)
         # Goal distance reward
-        Rg = -self.Cg * dg
+        Rg = -self.Cg * dg ** 2
         # Crowd distance reward
         dist_crowd = np.linalg.norm(self.agent_pos - self.crowd_poss, axis=-1)
         Rc = np.sum(
@@ -188,7 +189,7 @@ class StaticCrowdEnv(gym.Env):
         if (np.linalg.norm(self.agent_pos - self.goal_pos) < self.PHS) and \
             (np.linalg.norm(self.agent_vel) < self.MAX_GOAL_VEL):
             self._goal_reached = True
-        return self._goal_reached or self._is_collided or self._steps >= self.MAX_EPISODE_STEPS
+        return self._goal_reached or self._is_collided
     
     def _get_info(self):
         return {

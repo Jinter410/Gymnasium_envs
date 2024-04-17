@@ -9,9 +9,10 @@ def main(manual_control=False, n_rays=180, n_crowd=4, render_mode="human"):
     env = gym.make("StaticCrowd-v0", n_rays=n_rays, n_crowd=n_crowd, render_mode=render_mode)
     observation = env.reset()
     done = False
+    truncated = False
     clock = pygame.time.Clock()
 
-    while not done:
+    while not (done or truncated):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
@@ -39,8 +40,9 @@ def main(manual_control=False, n_rays=180, n_crowd=4, render_mode="human"):
         env.render()
 
     env.close()
-    pygame.quit()
-    sys.exit()
+    # pygame.quit()
+    # sys.exit()
 
 if __name__ == "__main__":
-    main(manual_control=True, n_rays= 40, n_crowd=40)
+    for i in range(10):
+        main(manual_control=True, n_rays= 40, n_crowd=50)
