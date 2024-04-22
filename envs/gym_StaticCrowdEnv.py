@@ -44,17 +44,26 @@ class StaticCrowdEnv(gym.Env):
             np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2)
         self.TASK_COMPLETION_REWARD = -self.COLLISION_REWARD / 2
         # Action space (linear and angular velocity)
-        action_bound = np.array([self.MAX_LINEAR_VEL, self.MAX_LINEAR_VEL]) #TODO
+        # Action space (linear and angular velocity)
         self.action_space = spaces.Box(
-            low=-action_bound, high=action_bound, shape=action_bound.shape
+            low=np.array([0, -np.pi]),
+            high=np.array([self.MAX_LINEAR_VEL, np.pi]),
+            dtype=np.float32
         )
+
         # Observation space
-        agent_bounds = np.array([self.W_BORDER, self.H_BORDER, self.MAX_LINEAR_VEL, self.MAX_LINEAR_VEL])
-        goal_bounds = np.array([self.W_BORDER, self.H_BORDER])
-        ray_bounds = np.array([np.sqrt(self.WIDTH**2 + self.HEIGHT**2)] * self.N_RAYS)
+        max_distance = np.linalg.norm([self.WIDTH, self.HEIGHT])
         self.observation_space = spaces.Box(
-            low=np.concatenate([-agent_bounds, -goal_bounds, np.full(self.N_RAYS, 0)]),
-            high=np.concatenate([agent_bounds, goal_bounds, ray_bounds]),
+            low=np.concatenate([
+                [0, -np.pi],  # Min agent velocity (speed, velocity angle)
+                [0, -np.pi],  # Min goal position (r, theta relative to agent)
+                np.zeros(self.N_RAYS)  # Min ray distances
+            ]),
+            high=np.concatenate([
+                [self.MAX_LINEAR_VEL, np.pi],  # Max agent velocity
+                [max_distance, np.pi],  # Max goal position
+                np.full(self.N_RAYS, max_distance)  # Max ray distances
+            ]),
             dtype=np.float32
         )
         # Plotting
@@ -63,7 +72,16 @@ class StaticCrowdEnv(gym.Env):
         self.window = None
         self.clock = None
         self.RATIO = 30
-        
+
+    def c2p(self, cart):
+        r = np.linalg.norm(cart)
+        theta = np.arctan2(cart[1], cart[0])
+        return np.array([r, theta])
+
+    def p2c(self, pol):
+        x = pol[0] * np.cos(pol[1])
+        y = pol[0] * np.sin(pol[1])
+        return np.array([x, y])
 
     def reset(self, seed=None, options=None):
         # Seeding
@@ -122,21 +140,18 @@ class StaticCrowdEnv(gym.Env):
         intersect_distances = np.where(intersections_mask, along_dist - orthog_to_intersect_dist, np.inf) # Distances from ray to intersection if existing
         min_intersect_distances = np.min(np.where(intersect_distances > 0, intersect_distances, np.inf), axis=0) # Minimum distance for each ray to have the closest intersection
         ray_distances = np.minimum(min_intersect_distances, default_distances) # If no intersection, rays collide with border
-        
-        # Agent state
-        agent_state = np.concatenate([self.agent_pos, self.agent_vel])
-        # Goal relative position
-        goal_rel_pos = self.goal_pos - self.agent_pos
-        # Store ray distances
         self.ray_distances = ray_distances
+        
+        # Goal relative position in cartesian and then convert to polar
+        cart_goal_rel_pos = self.goal_pos - self.agent_pos
+        pol_goal_rel_pos = self.c2p(cart_goal_rel_pos)
 
-        return np.concatenate([agent_state, goal_rel_pos, ray_distances]).astype(np.float32)
-        
+        return np.concatenate([self.agent_vel, pol_goal_rel_pos, default_distances]).astype(np.float32)
+            
     def step(self, action):
-        # Update agent state
-        self.agent_vel = np.clip(action, -self.MAX_LINEAR_VEL, self.MAX_LINEAR_VEL)
-        self.agent_pos += self.agent_vel * self._dt
-        
+        self.agent_vel = action
+        self.agent_pos += self.p2c(self.agent_vel) * self._dt
+
         terminated = self._terminate()
         reward = self._get_reward()
         info = self._get_info()
@@ -150,6 +165,7 @@ class StaticCrowdEnv(gym.Env):
             self._render_frame()
 
         return observation, reward, terminated, truncated, info
+
     
     def _get_reward(self):
         if self._goal_reached:
@@ -214,14 +230,15 @@ class StaticCrowdEnv(gym.Env):
         self.window.fill((245,245,245))
 
         # Agent
+        cart_agent_vel = self.p2c(self.agent_vel)
         agent_color = (0, 255, 0)
         agent_center = (
             int((self.agent_pos[0] + self.W_BORDER) * self.RATIO),
             int((self.agent_pos[1] + self.H_BORDER) * self.RATIO)
         )
         agent_radius = self.PHS * self.RATIO
-        arrow_pos = (agent_center[0] + int(self.agent_vel[0] * self.RATIO), 
-                agent_center[1] + int(self.agent_vel[1] * self.RATIO))
+        arrow_pos = (agent_center[0] + int(cart_agent_vel[0] * self.RATIO), 
+                agent_center[1] + int(cart_agent_vel[1] * self.RATIO))
         
 
         # Goal

@@ -1,0 +1,7 @@
+setup.py
+StaticCrowd.egg-info/PKG-INFO
+StaticCrowd.egg-info/SOURCES.txt
+StaticCrowd.egg-info/dependency_links.txt
+StaticCrowd.egg-info/requires.txt
+StaticCrowd.egg-info/top_level.txt
+envs/gym_StaticCrowdEnv.py

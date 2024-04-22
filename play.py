@@ -1,8 +1,6 @@
 import gymnasium as gym
+import Gymnasium_envs
 import pygame
-import sys
-sys.path.append("C:/Users/jorco/Desktop/These/Code/Simulation")
-from Gymnasium_envs.gym_StaticCrowdEnv import StaticCrowdEnv
 
 def main(manual_control=False, n_rays=180, n_crowd=4, render_mode="human"):
     pygame.init()
@@ -40,9 +38,7 @@ def main(manual_control=False, n_rays=180, n_crowd=4, render_mode="human"):
         env.render()
 
     env.close()
-    # pygame.quit()
-    # sys.exit()
 
 if __name__ == "__main__":
     for i in range(10):
-        main(manual_control=True, n_rays= 40, n_crowd=50)
+        main(manual_control=False, n_rays= 40, n_crowd=20)
