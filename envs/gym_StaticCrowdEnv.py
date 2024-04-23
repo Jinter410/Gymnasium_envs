@@ -13,7 +13,7 @@ class StaticCrowdEnv(gym.Env):
         width: int = 20,
         height: int = 20,
         interceptor_percentage: float = 0.5,
-        max_steps: int = 150,
+        max_steps: int = 30,
         render_mode: str = None,
     ):
         # Environment constants
@@ -117,6 +117,23 @@ class StaticCrowdEnv(gym.Env):
             collision = np.any(np.linalg.norm(self.crowd_poss - self.agent_pos, axis=1) < self.PRS * 2) or \
                         np.any(np.linalg.norm(self.crowd_poss - self.goal_pos, axis=1) < self.PRS * 2) or \
                         np.any(np.linalg.norm(self.crowd_poss[:, None] - self.crowd_poss[None, :], axis=-1)[np.triu_indices(self.N_CROWD, k=1)] < self.PHS * 2)
+        # Interceptor
+        if np.random.rand() < self.INTERCEPTOR_PERCENTAGE:
+            interceptor_index = np.random.randint(0, self.N_CROWD)
+            direction = self.goal_pos - self.agent_pos
+            norm_direction = direction / np.linalg.norm(direction)
+
+            perpendicular_offset = np.random.uniform(-self.PRS, self.PRS)
+            perpendicular_vector = np.array([-norm_direction[1], norm_direction[0]])
+
+            interceptor_pos = self.agent_pos + norm_direction * np.linalg.norm(self.goal_pos - self.agent_pos) / 2 + \
+                            perpendicular_vector * perpendicular_offset
+            # Ensure no collision with the agent
+            if np.linalg.norm(interceptor_pos - self.agent_pos) < self.PRS:
+                interceptor_pos += perpendicular_vector * self.PRS
+            
+            self.crowd_poss[interceptor_index] = interceptor_pos
+
 
         observation = self._get_obs()
         info = self._get_info()

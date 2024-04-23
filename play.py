@@ -2,9 +2,9 @@ import gymnasium as gym
 import Gymnasium_envs
 import pygame
 
-def main(manual_control=False, n_rays=180, n_crowd=4, render_mode="human"):
+def main(manual_control=False, n_rays=180, n_crowd=4, interceptor_percentage = 0.5, render_mode="human"):
     pygame.init()
-    env = gym.make("StaticCrowd-v0", n_rays=n_rays, n_crowd=n_crowd, render_mode=render_mode)
+    env = gym.make("StaticCrowd-v0", n_rays=n_rays, n_crowd=n_crowd, interceptor_percentage=interceptor_percentage ,render_mode=render_mode)
     observation = env.reset()
     done = False
     truncated = False
@@ -40,5 +40,5 @@ def main(manual_control=False, n_rays=180, n_crowd=4, render_mode="human"):
     env.close()
 
 if __name__ == "__main__":
-    for i in range(10):
-        main(manual_control=False, n_rays= 40, n_crowd=20)
+    for i in range(100):
+        main(manual_control=False, n_rays= 40, n_crowd=10, interceptor_percentage=1)
