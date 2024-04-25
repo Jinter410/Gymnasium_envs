@@ -13,7 +13,7 @@ class StaticCrowdEnv(gym.Env):
         width: int = 20,
         height: int = 20,
         interceptor_percentage: float = 0.5,
-        max_steps: int = 30,
+        max_steps: int = 100,
         render_mode: str = None,
     ):
         # Environment constants
@@ -42,7 +42,7 @@ class StaticCrowdEnv(gym.Env):
             np.log(-self.COLLISION_REWARD / self.MAX_EPISODE_STEPS + 1)
         self.Cg = -(1 - np.exp(self.Cc / self.SCS)) /\
             np.sqrt(self.WIDTH ** 2 + self.HEIGHT ** 2)
-        self.TASK_COMPLETION_REWARD = -self.COLLISION_REWARD / 2
+        self.TASK_COMPLETION_REWARD = -self.COLLISION_REWARD
         # Action space (linear and angular velocity)
         # Action space (linear and angular velocity)
         self.action_space = spaces.Box(
