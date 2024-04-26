@@ -163,7 +163,7 @@ class StaticCrowdEnv(gym.Env):
         cart_goal_rel_pos = self.goal_pos - self.agent_pos
         pol_goal_rel_pos = self.c2p(cart_goal_rel_pos)
 
-        return np.concatenate([self.agent_vel, pol_goal_rel_pos, default_distances]).astype(np.float32)
+        return np.concatenate([self.agent_vel, pol_goal_rel_pos, ray_distances]).astype(np.float32)
             
     def step(self, action):
         self.agent_vel = action
@@ -241,7 +241,8 @@ class StaticCrowdEnv(gym.Env):
             pygame.init()
             self.window = pygame.display.set_mode((self.WIDTH * self.RATIO, self.HEIGHT * self.RATIO))
             self.clock = pygame.time.Clock()
-
+        for event in pygame.event.get():
+            pass
         pygame.display.set_caption(f"Steps: {self._steps} Reward: {self._reward:.5f} Total Reward: {self._total_reward:.3f}")
         
         self.window.fill((245,245,245))
