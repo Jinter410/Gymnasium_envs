@@ -4,7 +4,7 @@ import pygame
 
 def main(manual_control=False, n_rays=180, n_crowd=4, interceptor_percentage = 0.5, max_steps=100, render_mode="human"):
     pygame.init()
-    env = gym.make("StaticCrowd-v0", n_rays=n_rays, n_crowd=n_crowd, interceptor_percentage=interceptor_percentage, max_steps=max_steps, render_mode=render_mode)
+    env = gym.make("ConstantVelocity-v0", n_rays=n_rays, n_crowd=n_crowd, interceptor_percentage=interceptor_percentage, max_steps=max_steps, render_mode=render_mode)
     observation = env.reset()
     done = False
     truncated = False
