@@ -1,5 +1,0 @@
-Metadata-Version: 2.1
-Name: StaticCrowd
-Version: 0.0.2
-Requires-Dist: gymnasium==0.28.1
-Requires-Dist: pygame==2.1.0

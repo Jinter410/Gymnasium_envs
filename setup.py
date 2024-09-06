@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name="StaticCrowd",
+    name="Gymnasium_envs",
     version="0.0.2",
-    install_requires=["gymnasium", "pygame"],
+    install_requires=["gymnasium", "pygame"]
 )
