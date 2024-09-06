@@ -242,7 +242,9 @@ class StaticCrowdEnv(gym.Env):
             self.window = pygame.display.set_mode((self.WIDTH * self.RATIO, self.HEIGHT * self.RATIO))
             self.clock = pygame.time.Clock()
         for event in pygame.event.get():
-            pass
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                
         pygame.display.set_caption(f"Steps: {self._steps} Reward: {self._reward:.5f} Total Reward: {self._total_reward:.3f}")
         
         self.window.fill((245,245,245))

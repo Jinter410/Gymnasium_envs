@@ -3,7 +3,7 @@ from gymnasium import spaces
 import pygame
 import numpy as np
 
-class ConstantVelocityEnv(gym.Env):
+class NavigationEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 60}
 
     def __init__(
@@ -12,14 +12,11 @@ class ConstantVelocityEnv(gym.Env):
         n_crowd: int,
         width: int = 20,
         height: int = 20,
-        interceptor_percentage: float = 0.5,
         max_steps: int = 100,
         render_mode: str = None,
     ):
         # Environment constants
         self.MAX_EPISODE_STEPS = max_steps
-        self.N_CROWD = n_crowd
-        self.INTERCEPTOR_PERCENTAGE = interceptor_percentage
         self.N_RAYS = n_rays
         self.RAY_ANGLES = np.linspace(0, 2 * np.pi, n_rays, endpoint=False) + 1e-6 # To avoid div by zero
         self.RAY_COS = np.cos(self.RAY_ANGLES)
@@ -56,12 +53,12 @@ class ConstantVelocityEnv(gym.Env):
             low=np.concatenate([
                 [0, -np.pi],  # Min agent velocity (speed, velocity angle)
                 [0, -np.pi],  # Min goal position (r, theta relative to agent)
-                np.zeros(self.N_RAYS * 3)  # Min ray distances
+                np.zeros(self.N_RAYS)  # Min ray distances
             ]),
             high=np.concatenate([
                 [self.MAX_LINEAR_VEL, np.pi],  # Max agent velocity
                 [max_distance, np.pi],  # Max goal position
-                np.full(self.N_RAYS * 3, max_distance)  # Max ray distances
+                np.full(self.N_RAYS, max_distance)  # Max ray distances
             ]),
             dtype=np.float32
         )
@@ -103,53 +100,6 @@ class ConstantVelocityEnv(gym.Env):
            [self.W_BORDER - self.PHS, self.H_BORDER - self.PHS]
         )
 
-        # Observation history
-        self.observations = np.zeros((3, self.N_RAYS))
-
-        # Crowd state
-        self.crowd_poss = np.zeros((self.N_CROWD, 2))
-        collision = True 
-        while collision:
-            self.crowd_poss = np.random.uniform(
-                [-self.W_BORDER, -self.H_BORDER],
-                [self.W_BORDER, self.H_BORDER],
-                (self.N_CROWD, 2)
-            )
-            # Check for agent, goal and crowd collisions
-            collision = np.any(np.linalg.norm(self.crowd_poss - self.agent_pos, axis=1) < self.PRS * 2) or \
-                        np.any(np.linalg.norm(self.crowd_poss - self.goal_pos, axis=1) < self.PRS * 2) or \
-                        np.any(np.linalg.norm(self.crowd_poss[:, None] - self.crowd_poss[None, :], axis=-1)[np.triu_indices(self.N_CROWD, k=1)] < self.PHS * 2)
-        
-        self.crowd_goals = np.random.uniform(
-            [-self.W_BORDER, -self.H_BORDER],
-            [self.W_BORDER, self.H_BORDER],
-            (self.N_CROWD, 2)
-        )
-
-        self.crowd_vels = np.random.uniform(
-            -self.MAX_LINEAR_VEL,
-            self.MAX_LINEAR_VEL,
-            self.N_CROWD,
-        )
-
-        # Interceptor
-        if np.random.rand() < self.INTERCEPTOR_PERCENTAGE:
-            interceptor_index = np.random.randint(0, self.N_CROWD)
-            direction = self.goal_pos - self.agent_pos
-            norm_direction = direction / np.linalg.norm(direction)
-
-            perpendicular_offset = np.random.uniform(-self.PRS, self.PRS)
-            perpendicular_vector = np.array([-norm_direction[1], norm_direction[0]])
-
-            interceptor_pos = self.agent_pos + norm_direction * np.linalg.norm(self.goal_pos - self.agent_pos) / 2 + \
-                            perpendicular_vector * perpendicular_offset
-            # Ensure no collision with the agent
-            if np.linalg.norm(interceptor_pos - self.agent_pos) < self.PRS:
-                interceptor_pos += perpendicular_vector * self.PRS
-            
-            self.crowd_poss[interceptor_index] = interceptor_pos
-
-
         observation = self._get_obs()
         info = self._get_info()
 
@@ -164,45 +114,18 @@ class ConstantVelocityEnv(gym.Env):
             (self.W_BORDER - np.where(self.RAY_COS > 0, self.agent_pos[0], -self.agent_pos[0])) / np.abs(self.RAY_COS),
             (self.H_BORDER - np.where(self.RAY_SIN > 0, self.agent_pos[1], -self.agent_pos[1])) / np.abs(self.RAY_SIN)
         ], axis=0)
-        x_crowd_rel, y_crowd_rel = self.crowd_poss[:, 0] - self.agent_pos[0], self.crowd_poss[:, 1] - self.agent_pos[1]
-        orthog_dist = np.abs(np.outer(x_crowd_rel, self.RAY_SIN) - np.outer(y_crowd_rel, self.RAY_COS)) # Orthogonal distances from obstacles to rays
-        intersections_mask = orthog_dist <= self.PHS # Mask for intersections
-        along_dist = np.outer(x_crowd_rel, self.RAY_COS) + np.outer(y_crowd_rel, self.RAY_SIN) # Distance along ray to orthogonal projection
-        orthog_to_intersect_dist = np.sqrt(np.maximum(self.PHS**2 - orthog_dist**2, 0)) # Distance from orthogonal projection to intersection
-        intersect_distances = np.where(intersections_mask, along_dist - orthog_to_intersect_dist, np.inf) # Distances from ray to intersection if existing
-        min_intersect_distances = np.min(np.where(intersect_distances > 0, intersect_distances, np.inf), axis=0) # Minimum distance for each ray to have the closest intersection
-        ray_distances = np.minimum(min_intersect_distances, default_distances) # If no intersection, rays collide with border
+        ray_distances = default_distances # Rays collide with border
         self.ray_distances = ray_distances
         
-        # Observation history
-        self.observations = np.roll(self.observations, shift=-1, axis=0)
-        self.observations[-1] = ray_distances
-
         # Goal relative position in cartesian and then convert to polar
         cart_goal_rel_pos = self.goal_pos - self.agent_pos
         pol_goal_rel_pos = self.c2p(cart_goal_rel_pos)
 
-        return np.concatenate([self.agent_vel, pol_goal_rel_pos, self.observations.flatten()]).astype(np.float32)
+        return np.concatenate([self.agent_vel, pol_goal_rel_pos, ray_distances]).astype(np.float32)
             
     def step(self, action):
-        # Update agent state
         self.agent_vel = action
         self.agent_pos += self.p2c(self.agent_vel) * self._dt
-
-        # Mise à jour de l'état de la foule
-        for i in range(self.N_CROWD):
-            direction_to_goal = self.crowd_goals[i] - self.crowd_poss[i]
-            norm_direction = direction_to_goal / np.linalg.norm(direction_to_goal)
-            self.crowd_poss[i] += norm_direction * self.crowd_vels[i] * self._dt
-            
-            # Vérifie si un membre de la foule a atteint son objectif
-            if np.linalg.norm(self.crowd_poss[i] - self.crowd_goals[i]) < self.PHS:
-                # Réaffectation d'un nouvel objectif
-                self.crowd_goals[i] = np.random.uniform(
-                    [-self.W_BORDER, -self.H_BORDER],
-                    [self.W_BORDER, self.H_BORDER],
-                    2
-                )
 
         terminated = self._terminate()
         reward = self._get_reward()
@@ -228,12 +151,6 @@ class ConstantVelocityEnv(gym.Env):
         dg = np.linalg.norm(self.agent_pos - self.goal_pos)
         # Goal distance reward
         Rg = -self.Cg * dg ** 2
-        # Crowd distance reward
-        dist_crowd = np.linalg.norm(self.agent_pos - self.crowd_poss, axis=-1)
-        Rc = np.sum(
-            (1 - np.exp(self.Cc / dist_crowd)) *\
-            (dist_crowd < [self.SCS + self.PHS] * self.N_CROWD)
-        )
         # Walls distance reward
         dist_walls = np.array([
             self.W_BORDER - abs(self.agent_pos[0]),
@@ -242,13 +159,9 @@ class ConstantVelocityEnv(gym.Env):
         Rw = np.sum(
             (1 - np.exp(self.Cc / dist_walls)) * (dist_walls < self.PHS * 2)
         )
-        return Rg + Rc + Rw
+        return Rg + Rw
     
     def _terminate(self):
-        # Check for collisions with crowd
-        if np.any(np.linalg.norm(self.agent_pos - self.crowd_poss, axis=1) < self.PHS * 2):
-            self._is_collided = True
-
         # Check for collisions with walls
         if np.any(np.abs(self.agent_pos) > np.array([self.W_BORDER, self.H_BORDER]) - self.PHS):
             self._is_collided = True
@@ -302,36 +215,7 @@ class ConstantVelocityEnv(gym.Env):
         goal_pos_y = int((self.goal_pos[1] + self.H_BORDER) * self.RATIO)
         pygame.draw.line(self.window, goal_color, (goal_pos_x - 10, goal_pos_y - 10), (goal_pos_x + 10, goal_pos_y + 10), 2)
         pygame.draw.line(self.window, goal_color, (goal_pos_x - 10, goal_pos_y + 10), (goal_pos_x + 10, goal_pos_y - 10), 2)
-
-        # Crowd
-        crowd_color = (255, 0, 0)  # Red
-        for pos in self.crowd_poss:
-            crowd_center = (
-            int((pos[0] + self.W_BORDER) * self.RATIO),
-            int((pos[1] + self.H_BORDER) * self.RATIO)
-            )
-            # Physical space
-            crowd_phs = int(self.PHS * self.RATIO)
-            pygame.draw.circle(self.window, crowd_color, crowd_center, crowd_phs)
-
-            # Personal space
-            crowd_prs = int(self.PRS * self.RATIO)
-            pygame.draw.circle(self.window, crowd_color, crowd_center, crowd_prs, 2)
-
-            # Draw dotted circle
-            crowd_scs = int(self.SCS * self.RATIO)
-            pygame.draw.circle(self.window, crowd_color, crowd_center, crowd_scs, 1)
         
-        # Crowd goals
-        crowd_goal_color = (255, 100, 0)
-        for pos in self.crowd_goals:
-            crowd_goal_center = (
-            int((pos[0] + self.W_BORDER) * self.RATIO),
-            int((pos[1] + self.H_BORDER) * self.RATIO)
-            )
-            pygame.draw.line(self.window, crowd_goal_color, (crowd_goal_center[0] - 10, crowd_goal_center[1] - 10), (crowd_goal_center[0] + 10, crowd_goal_center[1] + 10), 2)
-            pygame.draw.line(self.window, crowd_goal_color, (crowd_goal_center[0] - 10, crowd_goal_center[1] + 10), (crowd_goal_center[0] + 10, crowd_goal_center[1] - 10), 2)
-
         # Wall borders
         wall_color = (0, 0, 0)
         pygame.draw.rect(self.window, wall_color, (self.PHS * self.RATIO, self.PHS * self.RATIO, (self.WIDTH - 2 * self.PHS) * self.RATIO, (self.HEIGHT - 2 * self.PHS) * self.RATIO), 1)
@@ -358,7 +242,7 @@ class ConstantVelocityEnv(gym.Env):
             pygame.quit()
     
 if __name__ == "__main__":
-    env = ConstantVelocityEnv(n_rays=180, n_crowd=4, render_mode="human")
+    env = NavigationEnv(n_rays=180, n_crowd=4, render_mode="human")
     observation = env.reset()
     done = False
     while not done:

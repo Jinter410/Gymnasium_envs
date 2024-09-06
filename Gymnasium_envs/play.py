@@ -4,7 +4,11 @@ import pygame
 
 def main(manual_control=False, n_rays=180, n_crowd=4, interceptor_percentage = 0.5, max_steps=100, render_mode="human"):
     pygame.init()
-    env = gym.make("ConstantVelocity-v0", n_rays=n_rays, n_crowd=n_crowd, interceptor_percentage=interceptor_percentage, max_steps=max_steps, render_mode=render_mode)
+    env_name = "Navigation-v0"
+    if env_name == "Navigation-v0":
+        env = gym.make(env_name, n_rays=n_rays, n_crowd=n_crowd, max_steps=max_steps, render_mode=render_mode)
+    else:
+        env = gym.make(env_name, n_rays=n_rays, n_crowd=n_crowd, interceptor_percentage=interceptor_percentage, max_steps=max_steps, render_mode=render_mode)
     observation = env.reset()
     done = False
     truncated = False
@@ -41,4 +45,4 @@ def main(manual_control=False, n_rays=180, n_crowd=4, interceptor_percentage = 0
 
 if __name__ == "__main__":
     for i in range(100):
-        main(manual_control=False, n_rays= 40, n_crowd=10, interceptor_percentage=1, max_steps=70, render_mode="human")
+        main(manual_control=True, n_rays= 40, n_crowd=10, interceptor_percentage=1, max_steps=700, render_mode="human")
