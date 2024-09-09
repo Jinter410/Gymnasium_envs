@@ -1,4 +1,5 @@
 import gymnasium as gym
+import numpy as np
 import Gymnasium_envs
 import pygame
 
@@ -21,22 +22,34 @@ def main(manual_control=False, n_rays=180, n_crowd=4, interceptor_percentage = 0
 
         if manual_control:
             keys = pygame.key.get_pressed()
-            linear_velocity = 0
-            angular_velocity = 0
             
-            if keys[pygame.K_UP]:
-                angular_velocity = -1 
-            if keys[pygame.K_DOWN]:
-                angular_velocity = 1
-            
-            if keys[pygame.K_LEFT]:
-                linear_velocity = -1
-            if keys[pygame.K_RIGHT]:
+            if not np.any(keys):
+                action = (0, 0)
+            else:
                 linear_velocity = 1
-
-            action = (linear_velocity, angular_velocity)
-        else:
-            action = env.action_space.sample()
+                angle = None
+                
+                if keys[pygame.K_UP] and keys[pygame.K_RIGHT]:
+                    angle = -np.pi / 4 
+                elif keys[pygame.K_UP] and keys[pygame.K_LEFT]:
+                    angle = -3 * np.pi / 4  
+                elif keys[pygame.K_DOWN] and keys[pygame.K_RIGHT]:
+                    angle = np.pi / 4  
+                elif keys[pygame.K_DOWN] and keys[pygame.K_LEFT]:
+                    angle = 3 * np.pi / 4  
+                elif keys[pygame.K_UP]:
+                    angle = -np.pi / 2 
+                elif keys[pygame.K_DOWN]:
+                    angle = np.pi / 2  
+                elif keys[pygame.K_LEFT]:
+                    angle = np.pi  
+                elif keys[pygame.K_RIGHT]:
+                    angle = 0  
+                    
+                if angle is not None:
+                    action = (linear_velocity, angle)
+                else:
+                    action = env.action_space.sample()
 
         observation, reward, done, truncated, info = env.step(action)
         env.render()
