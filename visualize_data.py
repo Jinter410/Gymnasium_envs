@@ -25,7 +25,7 @@ num_robots = 10
 robot_positions = np.random.uniform(-10, 10, (num_robots, 2))
 inertia_angles = np.random.uniform(0, 2 * np.pi, num_robots)
 inertia_length = 2
-
+scatter = False
 
 plt.figure(figsize=(10, 10))
 
@@ -49,7 +49,14 @@ for i in range(num_robots):
     x_rot += robot_x
     y_rot += robot_y
 
-    plt.plot(x_rot, y_rot, label=f'Robot {i+1}: rayon={radius:.2f}, angle={angle:.2f}°')
+    if scatter:
+        indices = np.linspace(0, len(x_rot) - 1, 5, dtype=int)
+        x_rot = x_rot[indices]
+        y_rot = y_rot[indices]
+        plt.scatter(x_rot, y_rot, label=f'Robot {i+1}: rayon={radius:.2f}, angle={angle:.2f}°')
+    else:
+        plt.plot(x_rot, y_rot, label=f'Robot {i+1}: rayon={radius:.2f}, angle={angle:.2f}°')
+
     plt.plot(robot_x, robot_y, 'go', markersize=10)
     plt.arrow(robot_x, robot_y, inertia_length * np.cos(inertia_angle), inertia_length * np.sin(inertia_angle),
               head_width=0.5, head_length=0.5, fc='blue', ec='blue')

@@ -1,3 +1,4 @@
+README.md
 setup.py
 Gymnasium_envs/__init__.py
 Gymnasium_envs/play.py
