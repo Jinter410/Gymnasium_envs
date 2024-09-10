@@ -20,7 +20,7 @@ def rotate_points(x, y, rotation_angle):
     y_rot = x * sin_angle + y * cos_angle
     return x_rot, y_rot
 
-def generate_one_turn(robot_x, robot_y, how, radius_min=2, radius_max=15, angle_min=70, angle_max=110, strength_min=0.5, strength_max=2) -> tuple:
+def generate_one_turn(robot_x, robot_y, how, inertia_angle, radius_min=2, radius_max=15, angle_min=70, angle_max=110, strength_min=0.5, strength_max=2) -> tuple:
     # Turn parameters
     radius = np.random.uniform(radius_min, radius_max)  # Rayon de courbure
     angle = np.random.uniform(angle_min, angle_max)  # Angle de la courbe
@@ -56,10 +56,10 @@ for i in range(num_robots):
     robot_x, robot_y = robot_positions[i]
     inertia_angle = inertia_angles[i]
     
-    x_rot, y_rot,radius, angle = generate_one_turn(robot_x, robot_y, 'right')
+    x_rot, y_rot,radius, angle = generate_one_turn(robot_x, robot_y, 'right', inertia_angle)
     # If the turn is out of bounds
     while np.any(np.abs(x_rot) > bounds * 0.9) or np.any(np.abs(y_rot) > bounds * 0.9):
-        x_rot, y_rot, radius, angle = generate_one_turn(robot_x, robot_y, 'right')
+        x_rot, y_rot, radius, angle = generate_one_turn(robot_x, robot_y, 'right', inertia_angle)
 
     if scatter:
         indices = np.linspace(0, len(x_rot) - 1, 5, dtype=int)

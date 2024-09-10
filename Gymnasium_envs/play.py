@@ -48,8 +48,8 @@ def main(manual_control=False, n_rays=180, n_crowd=4, interceptor_percentage = 0
                     
                 if angle is not None:
                     action = (linear_velocity, angle)
-                else:
-                    action = env.action_space.sample()
+        else:
+            action = env.action_space.sample()
 
         observation, reward, done, truncated, info = env.step(action)
         env.render()
@@ -58,4 +58,4 @@ def main(manual_control=False, n_rays=180, n_crowd=4, interceptor_percentage = 0
 
 if __name__ == "__main__":
     for i in range(100):
-        main(manual_control=True, n_rays= 40, n_crowd=10, interceptor_percentage=1, max_steps=700, render_mode="human")
+        main(manual_control=False, n_rays= 40, n_crowd=10, interceptor_percentage=1, max_steps=700, render_mode="human")

@@ -91,7 +91,12 @@ class NavigationEnv(gym.Env):
         self._is_collided = False
 
         # Agent state
-        self.agent_pos = np.zeros(2)
+        # self.agent_pos = np.zeros(2)
+        # self.agent_vel = np.zeros(2)
+        self.agent_pos = self.goal_pos = np.random.uniform(
+           [-self.W_BORDER + self.PHS, -self.H_BORDER + self.PHS],
+           [self.W_BORDER - self.PHS, self.H_BORDER - self.PHS]
+        )
         self.agent_vel = np.zeros(2)
 
         # Goal state
