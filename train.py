@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from models import MLP
 from torch.utils.data import DataLoader, TensorDataset, random_split
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -10,8 +11,9 @@ from torch.utils.tensorboard import SummaryWriter
 
 run_name = "run1"
 train_percentage = 0.8
-n_epochs = 100
+n_epochs = 50
 save_freq = 10
+hidden_size = 64
 
 X = np.load('./data/X.npy')
 y = np.load('./data/y.npy')
@@ -33,23 +35,9 @@ batch_size = 32
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-class MLP(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
-        super(MLP, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_size, output_size)
-
-    def forward(self, x):
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        return x
-
 # Params
 input_size = X.shape[1]
 output_size = y.shape[1]
-hidden_size = 64
 model = MLP(input_size, hidden_size, output_size)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)

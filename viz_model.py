@@ -9,21 +9,10 @@ import pygame
 from typing import Tuple
 from tqdm import tqdm
 
+from models import MLP
+
 # Fonction pour charger le modèle à partir d'un checkpoint
 def load_model(checkpoint_path, input_size, hidden_size, output_size):
-    class MLP(nn.Module):
-        def __init__(self, input_size, hidden_size, output_size):
-            super(MLP, self).__init__()
-            self.fc1 = nn.Linear(input_size, hidden_size)
-            self.relu = nn.ReLU()
-            self.fc2 = nn.Linear(hidden_size, output_size)
-
-        def forward(self, x):
-            x = self.fc1(x)
-            x = self.relu(x)
-            x = self.fc2(x)
-            return x
-    
     model = MLP(input_size, hidden_size, output_size)
     model.load_state_dict(torch.load(checkpoint_path))
     model.eval()
@@ -45,11 +34,7 @@ def generate_turn_points(observation, embedding, model):
     with torch.no_grad():
         output = model(input_tensor).squeeze(0).numpy()
     
-    # Séparer les coordonnées x et y
-    x_points = output[:5]
-    y_points = output[5:]
-    
-    return x_points, y_points
+    return output
 
 # Fonction principale
 def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
@@ -89,11 +74,15 @@ def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
                 embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
                 
                 # Générer les points de sortie avec le modèle MLP
-                x_points, y_points = generate_turn_points(observation, embedding, mlp_model)
-                x_robot, y_robot = env.get_wrapper_attr('agent_pos')
-                x_points += x_robot
-                y_points += y_robot
+                output = generate_turn_points(observation, embedding, mlp_model)
+                x_points = output[::2]
+                y_points = output[1::2]
                 coordinates = list(zip(x_points, y_points))
+
+                # x_robot, y_robot = env.get_wrapper_attr('agent_pos')
+                # x_points += x_robot
+                # y_points += y_robot
+                
                 env.set_coordinate_list(coordinates)
                 env.render()
                 
@@ -102,5 +91,5 @@ def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
 
 # Exemple d'appel à la fonction principale
 if __name__ == '__main__':
-    checkpoint_path = './models/run1/model_epoch_90.pth'  # Remplacer par le chemin de votre checkpoint
+    checkpoint_path = './models/run1/model_epoch_20.pth'  # Remplacer par le chemin de votre checkpoint
     main(checkpoint_path)

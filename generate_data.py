@@ -114,21 +114,22 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
         while np.any(np.abs(x_rot) > env.get_wrapper_attr('WIDTH') - 2 * env.get_wrapper_attr('PHS')) or np.any(np.abs(y_rot) > env.get_wrapper_attr('HEIGHT') - 2 * env.get_wrapper_attr('PHS')):
             x_rot, y_rot, radius, angle = generate_one_turn(robot_x, robot_y, how, inertia_angle)
         
-        x_rot -= robot_x
-        y_rot -= robot_y
         # Scattering
         indices = np.linspace(0, len(x_rot) - 1, disc_output, dtype=int)
         x_rot = x_rot[indices]
         y_rot = y_rot[indices]
-        # plt.plot(x_rot, y_rot, label=f'Robot {i+1}: rayon={radius:.2f}, angle={angle:.2f}°')
-        # plt.plot(robot_x, robot_y, 'go', markersize=10)
-        # plt.arrow(robot_x, robot_y, 2 * np.cos(inertia_angle), 2 * np.sin(inertia_angle),
-        #           head_width=0.5, head_length=0.5, fc='blue', ec='blue')
-        # plt.axis([-env.WIDTH, env.WIDTH, -env.HEIGHT, env.HEIGHT])
-        # plt.show()
-        # quit()
-        X[_] = np.concat([observation.flatten(), r_emb.flatten()])
-        y[_] = np.concat([x_rot, y_rot])
+
+        plt.plot(x_rot, y_rot, label=f'Robot {i+1}: rayon={radius:.2f}, angle={angle:.2f}°')
+        plt.plot(robot_x, robot_y, 'go', markersize=10)
+        plt.arrow(robot_x, robot_y, 2 * np.cos(inertia_angle), 2 * np.sin(inertia_angle),
+                  head_width=0.5, head_length=0.5, fc='blue', ec='blue')
+        plt.axis([-env.WIDTH, env.WIDTH, -env.HEIGHT, env.HEIGHT])
+        plt.show()
+        quit()
+
+        X[_] = np.concatenate([observation.flatten(), r_emb.flatten()])
+        zipped_points = np.array([coord for pair in zip(x_rot, y_rot) for coord in pair])
+        y[_] = zipped_points  # Utiliser les coordonnées zippées pour y
         n_steps = np.random.randint(2, 5)
         
     env.close()
