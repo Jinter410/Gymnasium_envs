@@ -1,3 +1,4 @@
+import time
 import torch
 import torch.nn as nn
 import numpy as np
@@ -68,7 +69,7 @@ def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
                 print("En pause, entrez une instruction :")
-                instruction = input("Instruction : ")
+                instruction = "Turn right"
                 
                 # Obtenir l'embedding de l'instruction
                 embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
@@ -77,14 +78,15 @@ def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
                 output = generate_turn_points(observation, embedding, mlp_model)
                 x_points = output[::2]
                 y_points = output[1::2]
-                coordinates = list(zip(x_points, y_points))
 
-                # x_robot, y_robot = env.get_wrapper_attr('agent_pos')
-                # x_points += x_robot
-                # y_points += y_robot
+                x_robot, y_robot = env.get_wrapper_attr('agent_pos')
+                x_points += x_robot
+                y_points -= y_robot
+                coordinates = list(zip(x_points, y_points))
                 
                 env.set_coordinate_list(coordinates)
                 env.render()
+                time.sleep(5)
                 
 
     env.close()

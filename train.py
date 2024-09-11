@@ -11,7 +11,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 run_name = "run1"
 train_percentage = 0.8
-n_epochs = 50
+n_epochs = 30
 save_freq = 10
 hidden_size = 64
 

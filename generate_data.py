@@ -69,9 +69,9 @@ def generate_one_turn(robot_x, robot_y, how, inertia_angle, radius_min=2, radius
     rotation_angle = inertia_angle - np.pi / 2
     x_rot, y_rot = rotate_points(x, y, rotation_angle)
 
-    # Shift turn towards the robot
-    x_rot += robot_x
-    y_rot += robot_y
+    # # Shift turn towards the robot
+    # x_rot += robot_x
+    # y_rot += robot_y
     return x_rot, y_rot, radius, angle
 
 def get_embeddings(model, tokenizer, sentences):
@@ -119,13 +119,18 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
         x_rot = x_rot[indices]
         y_rot = y_rot[indices]
 
-        plt.plot(x_rot, y_rot, label=f'Robot {i+1}: rayon={radius:.2f}, angle={angle:.2f}°')
-        plt.plot(robot_x, robot_y, 'go', markersize=10)
-        plt.arrow(robot_x, robot_y, 2 * np.cos(inertia_angle), 2 * np.sin(inertia_angle),
-                  head_width=0.5, head_length=0.5, fc='blue', ec='blue')
-        plt.axis([-env.WIDTH, env.WIDTH, -env.HEIGHT, env.HEIGHT])
-        plt.show()
-        quit()
+        # plt.plot(x_rot, y_rot, label=f'Robot {i+1}: rayon={radius:.2f}, angle={angle:.2f}°')
+        # plt.plot(robot_x, robot_y, 'go', markersize=10)
+        # plt.arrow(robot_x, robot_y, 2 * np.cos(inertia_angle), 2 * np.sin(inertia_angle),
+        #         head_width=0.5, head_length=0.5, fc='blue', ec='blue')
+
+        # # Annoter chaque point avec son numéro
+        # for idx, (x, y) in enumerate(zip(x_rot, y_rot)):
+        #     plt.text(x, y, str(idx + 1), fontsize=12, color='red', ha='center', va='center')
+
+        # plt.axis([-env.WIDTH, env.WIDTH, -env.HEIGHT, env.HEIGHT])
+        # plt.show()
+        # quit()
 
         X[_] = np.concatenate([observation.flatten(), r_emb.flatten()])
         zipped_points = np.array([coord for pair in zip(x_rot, y_rot) for coord in pair])
@@ -139,9 +144,9 @@ if __name__ == "__main__":
     model_name = "thenlper/gte-small"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
-    X_left,y_left = generate("left", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=20000)
-    X_right,y_right = generate("right", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=20000)
+    X_left,y_left = generate("left", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=100)
+    X_right,y_right = generate("right", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=100)
     X = np.concat([X_left, X_right])
     y = np.concat([y_left, y_right])
-    np.save("./data/X.npy", X)
-    np.save("./data/y.npy", y)
+    np.save("./data/X_val.npy", X)
+    np.save("./data/y_val.npy", y)

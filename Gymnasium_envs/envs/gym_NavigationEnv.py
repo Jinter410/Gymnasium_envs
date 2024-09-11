@@ -91,13 +91,12 @@ class NavigationEnv(gym.Env):
         self._is_collided = False
 
         # Agent state
-        # self.agent_pos = np.zeros(2)
-        # self.agent_vel = np.zeros(2)
-        self.agent_pos = self.goal_pos = np.random.uniform(
-           [-self.W_BORDER + self.PHS, -self.H_BORDER + self.PHS],
-           [self.W_BORDER - self.PHS, self.H_BORDER - self.PHS]
-        )
+        self.agent_pos = np.zeros(2)
         self.agent_vel = np.zeros(2)
+        # self.agent_pos = self.goal_pos = np.random.uniform(
+        #    [-self.W_BORDER + self.PHS, -self.H_BORDER + self.PHS],
+        #    [self.W_BORDER - self.PHS, self.H_BORDER - self.PHS]
+        # )
 
         # Goal state
         self.goal_pos = np.random.uniform(
@@ -215,7 +214,7 @@ class NavigationEnv(gym.Env):
         agent_radius = self.PHS * self.RATIO
         arrow_pos = (agent_center[0] + int(cart_agent_vel[0] * self.RATIO), 
                 agent_center[1] + int(cart_agent_vel[1] * self.RATIO))
-        
+        angle_arrow = np.arctan2(cart_agent_vel[1], cart_agent_vel[0])  # En radians
 
         # Goal
         goal_color = (0, 0, 255)
@@ -244,7 +243,8 @@ class NavigationEnv(gym.Env):
             point_color = (177, 40, 229)
             for coord in self.coordinate_list:
                 point_x = int((coord[0] + self.W_BORDER) * self.RATIO)
-                point_y = int((coord[1] + self.H_BORDER) * self.RATIO)
+                # Inverser l'axe Y pour correspondre au système de coordonnées de Pygame
+                point_y = int((self.HEIGHT - coord[1] - self.H_BORDER) * self.RATIO)
                 pygame.draw.circle(self.window, point_color, (point_x, point_y), 5)
 
         
