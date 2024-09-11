@@ -9,7 +9,6 @@ class NavigationEnv(gym.Env):
     def __init__(
         self,
         n_rays: int,
-        n_crowd: int,
         width: int = 20,
         height: int = 20,
         max_steps: int = 100,
