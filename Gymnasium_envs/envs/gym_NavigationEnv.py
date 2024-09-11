@@ -45,6 +45,7 @@ class NavigationEnv(gym.Env):
             high=np.array([self.MAX_LINEAR_VEL, np.pi]),
             dtype=np.float32
         )
+        self.coordinate_list = None
 
         # Observation space
         max_distance = np.linalg.norm([self.WIDTH, self.HEIGHT])
@@ -183,6 +184,9 @@ class NavigationEnv(gym.Env):
             "steps": self._steps, 
             "dist_to_goal": np.linalg.norm(self.agent_pos - self.goal_pos)
         }
+    def set_coordinate_list(self, coordinates):
+        """Set a list of coordinates to be plotted during rendering."""
+        self.coordinate_list = coordinates
     
     def render(self):
         if self.render_mode == "human":
@@ -234,7 +238,14 @@ class NavigationEnv(gym.Env):
         # Draw agent above rays
         pygame.draw.circle(self.window, agent_color, agent_center, agent_radius)
         pygame.draw.line(self.window, (0, 150, 0), agent_center, arrow_pos, 3)
-        # Dessiner les ailes de la flèche
+        
+        # Afficher les points s'ils existent
+        if self.coordinate_list is not None:
+            point_color = (177, 40, 229)
+            for coord in self.coordinate_list:
+                point_x = int((coord[0] + self.W_BORDER) * self.RATIO)
+                point_y = int((coord[1] + self.H_BORDER) * self.RATIO)
+                pygame.draw.circle(self.window, point_color, (point_x, point_y), 5)
 
         
         pygame.display.flip()
