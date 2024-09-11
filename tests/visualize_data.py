@@ -45,7 +45,7 @@ num_robots = 10
 robot_spawn = 10
 bounds = 20
 robot_positions = np.random.uniform(-robot_spawn, robot_spawn, (num_robots, 2))
-inertia_angles = np.random.uniform(0, 2 * np.pi, num_robots)
+inertia_angles = np.random.uniform(-np.pi, np.pi, num_robots)
 inertia_length = 2
 scatter = False
 

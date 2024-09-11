@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 import os
 from torch.utils.tensorboard import SummaryWriter
 
-run_name = "run1"
+run_name = "128_neur"
 train_percentage = 0.8
-n_epochs = 30
+n_epochs = 40
 save_freq = 10
-hidden_size = 64
+hidden_size = 128
 
 X = np.load('./data/X.npy')
 y = np.load('./data/y.npy')

@@ -106,14 +106,19 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
             action = env.action_space.sample()
             observation, reward, done, truncated, info = env.step(action)
             
-        inertia_angle = observation[1] + np.pi
+        inertia_angle = observation[1]
         robot_x = env.get_wrapper_attr('agent_pos')[0]
         robot_y = env.get_wrapper_attr('agent_pos')[1]
         x_rot, y_rot, radius, angle = generate_one_turn(robot_x, robot_y, how, inertia_angle)
         # If the turn is out of bounds
-        while np.any(np.abs(x_rot) > env.get_wrapper_attr('WIDTH') - 2 * env.get_wrapper_attr('PHS')) or np.any(np.abs(y_rot) > env.get_wrapper_attr('HEIGHT') - 2 * env.get_wrapper_attr('PHS')):
+        half_width = env.get_wrapper_attr('WIDTH') / 2
+        half_height = env.get_wrapper_attr('HEIGHT') / 2
+        phs = env.get_wrapper_attr('PHS')
+
+        while np.any(x_rot < -half_width + phs) or np.any(x_rot > half_width - phs) or \
+            np.any(y_rot < -half_height + phs) or np.any(y_rot > half_height - phs):
             x_rot, y_rot, radius, angle = generate_one_turn(robot_x, robot_y, how, inertia_angle)
-        
+                
         # Scattering
         indices = np.linspace(0, len(x_rot) - 1, disc_output, dtype=int)
         x_rot = x_rot[indices]

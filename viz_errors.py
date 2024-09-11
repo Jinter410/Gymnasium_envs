@@ -11,16 +11,16 @@ def load_model(checkpoint_path, input_size, hidden_size, output_size):
     return model
 
 # Charger les données
-X = np.load('./data/X_val.npy')  # Données d'observations
-y = np.load('./data/y_val.npy')  # Données de vérité terrain (trajectoires réelles)
+X = np.load('./data/X.npy')  # Données d'observations
+y = np.load('./data/y.npy')  # Données de vérité terrain (trajectoires réelles)
 
 # Paramètres
 n_robots = 1  # Nombre de robots à afficher
-checkpoint_path = './models/run1/model_epoch_30.pth'  # Chemin du checkpoint
+checkpoint_path = './models/128_neur/model_epoch_40.pth'  # Chemin du checkpoint
 
 # Paramètres du modèle
 input_size = X.shape[1]
-hidden_size = 64
+hidden_size = 128
 output_size = y.shape[1]
 
 # Charger le modèle

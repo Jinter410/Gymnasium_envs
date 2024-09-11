@@ -50,10 +50,10 @@ def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
     
     # Charger le modèle MLP depuis le checkpoint
     input_size = env.observation_space.shape[0] + 384 
-    hidden_size = 64
+    fc_size = 128
     output_size = 10  # 5 points x et 5 points y
     
-    mlp_model = load_model(checkpoint_path, input_size, hidden_size, output_size)
+    mlp_model = load_model(checkpoint_path, input_size, fc_size, output_size)
     
     # Boucle principale
     done = False
@@ -68,18 +68,56 @@ def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
         # Vérifier si l'utilisateur appuie sur "C"
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
-                print("En pause, entrez une instruction :")
-                instruction = "Turn right"
+                print("En pause, entrez le nombre d'instructions :")
+                nb_instruction = input() 
+                observation[1] += np.pi  # Inverser l'angle d'inertie pour l'affichage
+                   
                 
-                # Obtenir l'embedding de l'instruction
-                embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
-                
-                # Générer les points de sortie avec le modèle MLP
-                output = generate_turn_points(observation, embedding, mlp_model)
-                x_points = output[::2]
-                y_points = output[1::2]
+                for i in range(int(nb_instruction)):
+                    print(f"Instruction {i + 1} :")
+                    instruction = input()
+                    # Obtenir l'embedding de l'instruction
+                    embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
+                    
+                    # Générer les points de sortie avec le modèle MLP
+                    output = generate_turn_points(observation, embedding, mlp_model)
+                    x_points = output[::2]
+                    y_points = output[1::2]
 
-                x_robot, y_robot = env.get_wrapper_attr('agent_pos')
+                    x_robot, y_robot = env.get_wrapper_attr('agent_pos')
+
+                    
+                    ####4
+                    x_points_plot = x_points + x_robot
+                    y_points_plot = y_points + y_robot
+                    # Obtenir l'inertie (angle) du robot
+                    inertia_angle = observation[1] + np.pi# Angle d'inertie en radians
+
+                    # Plot simple avec matplotlib
+                    plt.figure(figsize=(8, 8))
+                    plt.plot(x_points_plot, y_points_plot, 'ro-', label="Trajectoire prédite")
+                    plt.plot(x_robot, y_robot, 'go', markersize=10, label="Position du Robot")
+
+                    # Dessiner une flèche pour l'inertie
+                    arrow_length = 2
+                    plt.arrow(x_robot, y_robot, arrow_length * np.cos(inertia_angle), arrow_length * np.sin(inertia_angle),
+                            head_width=0.5, head_length=0.5, fc='blue', ec='blue', label="Inertie")
+
+                    # Configurer le plot
+                    plt.xlabel('Position X')
+                    plt.ylabel('Position Y')
+                    plt.title('Trajectoire du Robot avec Inertie')
+                    plt.grid(True)
+                    plt.legend()
+                    plt.xlim([-20, 20])
+                    plt.ylim([-20, 20])
+                    plt.show()
+
+                    ###
+
+                
+
+
                 x_points += x_robot
                 y_points -= y_robot
                 coordinates = list(zip(x_points, y_points))
@@ -93,5 +131,5 @@ def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
 
 # Exemple d'appel à la fonction principale
 if __name__ == '__main__':
-    checkpoint_path = './models/run1/model_epoch_20.pth'  # Remplacer par le chemin de votre checkpoint
+    checkpoint_path = './models/128_neur/model_epoch_40.pth'  # Remplacer par le chemin de votre checkpoint
     main(checkpoint_path)

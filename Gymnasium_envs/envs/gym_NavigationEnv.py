@@ -91,12 +91,12 @@ class NavigationEnv(gym.Env):
         self._is_collided = False
 
         # Agent state
-        self.agent_pos = np.zeros(2)
+        # self.agent_pos = np.zeros(2)
         self.agent_vel = np.zeros(2)
-        # self.agent_pos = self.goal_pos = np.random.uniform(
-        #    [-self.W_BORDER + self.PHS, -self.H_BORDER + self.PHS],
-        #    [self.W_BORDER - self.PHS, self.H_BORDER - self.PHS]
-        # )
+        self.agent_pos = self.goal_pos = np.random.uniform(
+           [-self.W_BORDER + self.PHS, -self.H_BORDER + self.PHS],
+           [self.W_BORDER - self.PHS, self.H_BORDER - self.PHS]
+        )
 
         # Goal state
         self.goal_pos = np.random.uniform(
@@ -205,17 +205,17 @@ class NavigationEnv(gym.Env):
         self.window.fill((245,245,245))
 
         # Agent
-        cart_agent_vel = self.p2c(self.agent_vel)
         agent_color = (0, 255, 0)
         agent_center = (
             int((self.agent_pos[0] + self.W_BORDER) * self.RATIO),
             int((self.agent_pos[1] + self.H_BORDER) * self.RATIO)
         )
         agent_radius = self.PHS * self.RATIO
-        arrow_pos = (agent_center[0] + int(cart_agent_vel[0] * self.RATIO), 
-                agent_center[1] + int(cart_agent_vel[1] * self.RATIO))
-        angle_arrow = np.arctan2(cart_agent_vel[1], cart_agent_vel[0])  # En radians
-
+        agent_speed, agent_angle = self.agent_vel
+        arrow_pos = (
+            agent_center[0] + int(agent_speed * np.cos(agent_angle) * self.RATIO),  # Composante X
+            agent_center[1] - int(agent_speed * np.sin(agent_angle) * self.RATIO)   # Composante Y (inversée pour Pygame)
+        )
         # Goal
         goal_color = (0, 0, 255)
         goal_pos_x = int((self.goal_pos[0] + self.W_BORDER) * self.RATIO)
