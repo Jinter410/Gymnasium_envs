@@ -7,7 +7,7 @@ def main(manual_control=False, n_rays=180, n_crowd=4, interceptor_percentage = 0
     pygame.init()
     env_name = "Navigation-v0"
     if env_name == "Navigation-v0":
-        env = gym.make(env_name, n_rays=n_rays, n_crowd=n_crowd, max_steps=max_steps, render_mode=render_mode)
+        env = gym.make(env_name, n_rays=n_rays, max_steps=max_steps, render_mode=render_mode)
     else:
         env = gym.make(env_name, n_rays=n_rays, n_crowd=n_crowd, interceptor_percentage=interceptor_percentage, max_steps=max_steps, render_mode=render_mode)
     observation = env.reset()
