@@ -213,9 +213,10 @@ class NavigationEnv(gym.Env):
         agent_radius = self.PHS * self.RATIO
         agent_speed, agent_angle = self.agent_vel
         arrow_pos = (
-            agent_center[0] + int(agent_speed * np.cos(agent_angle) * self.RATIO),  # Composante X
-            agent_center[1] - int(agent_speed * np.sin(agent_angle) * self.RATIO)   # Composante Y (inversée pour Pygame)
+            agent_center[0] + int(agent_speed * np.cos(agent_angle) * self.RATIO),  
+            agent_center[1] + int(agent_speed * np.sin(agent_angle) * self.RATIO)
         )
+        
         # Goal
         goal_color = (0, 0, 255)
         goal_pos_x = int((self.goal_pos[0] + self.W_BORDER) * self.RATIO)
@@ -243,8 +244,8 @@ class NavigationEnv(gym.Env):
             point_color = (177, 40, 229)
             for coord in self.coordinate_list:
                 point_x = int((coord[0] + self.W_BORDER) * self.RATIO)
-                # Inverser l'axe Y pour correspondre au système de coordonnées de Pygame
-                point_y = int((self.HEIGHT - coord[1] - self.H_BORDER) * self.RATIO)
+                point_y = int((coord[1] + self.H_BORDER) * self.RATIO)
+
                 pygame.draw.circle(self.window, point_color, (point_x, point_y), 5)
 
         

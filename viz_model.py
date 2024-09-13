@@ -62,7 +62,6 @@ def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
     while not done:
         action = env.action_space.sample()  # Action aléatoire (peut être remplacé par un modèle de contrôle)
         observation, reward, done, truncated, info = env.step(action)
-        
         env.render()  # Affiche l'environnement
         
         # Vérifier si l'utilisateur appuie sur "C"
@@ -70,12 +69,17 @@ def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
             if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
                 print("En pause, entrez le nombre d'instructions :")
                 nb_instruction = input() 
-                observation[1] += np.pi  # Inverser l'angle d'inertie pour l'affichage
+                if not nb_instruction.isdigit():
+                    direct_instruction = nb_instruction
+                    nb_instruction = 1
                    
                 
                 for i in range(int(nb_instruction)):
-                    print(f"Instruction {i + 1} :")
-                    instruction = input()
+                    if not direct_instruction:
+                        print(f"Instruction {i + 1} :")
+                        instruction = input()
+                    else:
+                        instruction = direct_instruction
                     # Obtenir l'embedding de l'instruction
                     embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
                     
@@ -83,20 +87,22 @@ def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
                     output = generate_turn_points(observation, embedding, mlp_model)
                     x_points = output[::2]
                     y_points = output[1::2]
-
                     x_robot, y_robot = env.get_wrapper_attr('agent_pos')
-
                     
-                    ####4
-                    x_points_plot = x_points + x_robot
-                    y_points_plot = y_points + y_robot
+                    ############################
+                    x_points_plot = x_robot + x_points
+                    y_points_plot = y_robot + y_points
                     # Obtenir l'inertie (angle) du robot
-                    inertia_angle = observation[1] + np.pi# Angle d'inertie en radians
+                    inertia_angle = observation[1] 
 
                     # Plot simple avec matplotlib
                     plt.figure(figsize=(8, 8))
                     plt.plot(x_points_plot, y_points_plot, 'ro-', label="Trajectoire prédite")
                     plt.plot(x_robot, y_robot, 'go', markersize=10, label="Position du Robot")
+
+                    # Ajouter des numéros aux points
+                    for i, (x, y) in enumerate(zip(x_points_plot, y_points_plot)):
+                        plt.text(x, y, f'{i+1}', fontsize=12, ha='right')
 
                     # Dessiner une flèche pour l'inertie
                     arrow_length = 2
@@ -111,17 +117,14 @@ def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
                     plt.legend()
                     plt.xlim([-20, 20])
                     plt.ylim([-20, 20])
+                    # Invert Y axis to match pygame's coordinate system
+                    plt.gca().invert_yaxis()
                     plt.show()
-
-                    ###
-
-                
-
+                    ############################
 
                 x_points += x_robot
-                y_points -= y_robot
+                y_points += y_robot
                 coordinates = list(zip(x_points, y_points))
-                
                 env.set_coordinate_list(coordinates)
                 env.render()
                 time.sleep(5)

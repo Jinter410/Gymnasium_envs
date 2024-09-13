@@ -55,6 +55,8 @@ for i in range(n_robots):
 # Configuration du plot
 plt.xlabel('Position X')
 plt.ylabel('Position Y')
+# Invert Y axis to match pygame's coordinate system
+plt.gca().invert_yaxis()
 plt.title(f'Vérité terrain vs Prédiction du modèle pour {n_robots} robots')
 plt.legend()
 plt.grid(True)
