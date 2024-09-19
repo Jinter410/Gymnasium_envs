@@ -75,11 +75,8 @@ def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
                    
                 
                 for i in range(int(nb_instruction)):
-                    if not direct_instruction:
-                        print(f"Instruction {i + 1} :")
-                        instruction = input()
-                    else:
-                        instruction = direct_instruction
+                    print(f"Instruction {i + 1} :")
+                    instruction = input()
                     # Obtenir l'embedding de l'instruction
                     embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
                     
