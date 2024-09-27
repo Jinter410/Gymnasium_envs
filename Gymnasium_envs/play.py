@@ -12,6 +12,7 @@ def main(manual_control=False, n_rays=180, n_crowd=4, interceptor_percentage = 0
     else:
         env = gym.make(env_name, n_rays=n_rays, n_crowd=n_crowd, interceptor_percentage=interceptor_percentage, max_steps=max_steps, render_mode=render_mode)
     observation = env.reset()
+    
     done = False
     truncated = False
     clock = pygame.time.Clock()
@@ -27,6 +28,7 @@ def main(manual_control=False, n_rays=180, n_crowd=4, interceptor_percentage = 0
             action = env.action_space.sample()
 
         observation, reward, done, truncated, info = env.step(action)
+        print(observation[2:4])
         env.render()
 
     env.close()

@@ -241,7 +241,7 @@ class NavigationEnv(gym.Env):
         
         # Afficher les points s'ils existent
         if self.coordinate_list is not None:
-            point_color = (177, 40, 229)
+            point_color = (64, 0, 128)
             for coord in self.coordinate_list:
                 point_x = int((coord[0] + self.W_BORDER) * self.RATIO)
                 point_y = int((coord[1] + self.H_BORDER) * self.RATIO)
