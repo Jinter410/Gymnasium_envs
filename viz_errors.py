@@ -1,14 +1,7 @@
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
-from models import MLP
-
-# Fonction pour charger le modèle
-def load_model(checkpoint_path, input_size, hidden_size, output_size):
-    model = MLP(input_size, hidden_size, output_size)
-    model.load_state_dict(torch.load(checkpoint_path))
-    model.eval()
-    return model
+from utils import load_model
 
 # Charger les données
 X = np.load('./data/X.npy')  # Données d'observations
@@ -16,15 +9,16 @@ y = np.load('./data/y.npy')  # Données de vérité terrain (trajectoires réell
 
 # Paramètres
 n_robots = 1  # Nombre de robots à afficher
-checkpoint_path = './models/128_neur/model_epoch_40.pth'  # Chemin du checkpoint
+checkpoint_path = './models/128_neur+forward+Roberta/model_epoch_40.pth'  # Chemin du checkpoint
 
 # Paramètres du modèle
 input_size = X.shape[1]
-hidden_size = 128
+fc_size1 = 256
+fc_size2 = 128
 output_size = y.shape[1]
 
 # Charger le modèle
-model = load_model(checkpoint_path, input_size, hidden_size, output_size)
+model = load_model(checkpoint_path, input_size, fc_size1, fc_size2, output_size)
 
 # Sélectionner aléatoirement 5 robots parmi les données
 indices = np.random.choice(X.shape[0], size=n_robots, replace=False)

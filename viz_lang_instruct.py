@@ -14,18 +14,12 @@ from typing import Tuple
 from tqdm import tqdm
 
 from models import MLP
+from utils import load_model
 
 def c2p(cart):
         r = np.linalg.norm(cart)
         theta = np.arctan2(cart[1], cart[0])
         return np.array([r, theta])
-
-# Fonction pour charger le modèle à partir d'un checkpoint
-def load_model(checkpoint_path, input_size, hidden_size, output_size):
-    model = MLP(input_size, hidden_size, output_size)
-    model.load_state_dict(torch.load(checkpoint_path))
-    model.eval()
-    return model
 
 def get_embeddings(model, tokenizer, sentences):
     inputs = tokenizer(sentences, padding=True, truncation=True, return_tensors="pt")
@@ -46,22 +40,23 @@ def generate_turn_points(observation, embedding, model):
     return output
 
 # Fonction principale
-def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
+def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_steps=100):
 
-    model_name = "thenlper/gte-small"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    text_model = AutoModel.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(nlp_model)
+    text_model = AutoModel.from_pretrained(nlp_model)
+    embedding_size = text_model.config.hidden_size
     pygame.init()
     
      # Initialiser l'environnement
     env = gym.make(env_name, n_rays=n_rays, max_steps=max_steps, render_mode=None)
     
     # Charger le modèle MLP depuis le checkpoint
-    input_size = env.observation_space.shape[0] + 384 
-    fc_size = 128
+    input_size = env.observation_space.shape[0] + embedding_size 
+    fc_size1 = 256
+    fc_size2 = 128
     output_size = 10  # 5 points x et 5 points y
     
-    mlp_model = load_model(checkpoint_path, input_size, fc_size, output_size)
+    mlp_model = load_model(checkpoint_path, input_size, fc_size1, fc_size2, output_size)
     
     # Boucle principale
     done = False
@@ -171,5 +166,6 @@ def main(checkpoint_path, env_name="Navigation-v0", n_rays=40, max_steps=100):
 
 # Exemple d'appel à la fonction principale
 if __name__ == '__main__':
-    checkpoint_path = './models/128_neur/model_epoch_40.pth'  # Remplacer par le chemin de votre checkpoint
-    main(checkpoint_path)
+    checkpoint_path = './models/128_neur+forward+Roberta/model_epoch_40.pth'  # Remplacer par le chemin de votre checkpoint
+    model_name = "roberta-base"
+    main(checkpoint_path, model_name)

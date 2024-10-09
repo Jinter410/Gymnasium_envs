@@ -2,6 +2,13 @@ import numpy as np
 import pygame
 import torch
 
+from models import MLP
+
+def load_model(checkpoint_path, input_size,  fc_size1, fc_size2, output_size):
+    model = MLP(input_size,  fc_size1, fc_size2, output_size)
+    model.load_state_dict(torch.load(checkpoint_path))
+    model.eval()
+    return model
 
 def manual_action() -> tuple:
     keys = pygame.key.get_pressed()
@@ -66,7 +73,7 @@ def generate_one(robot_x, robot_y, how, inertia_angle, radius_min=2, radius_max=
     radius = np.random.uniform(radius_min, radius_max)  # Rayon de courbure
     angle = np.random.uniform(angle_min, angle_max)  # Angle de la courbe
     strength = np.random.uniform(strength_min, strength_max)  # Force de la courbe
-    length = np.random.uniform(3, 8)  # Longueur de la ligne droite
+    length = np.random.uniform(3, 10)  # Longueur de la ligne droite
 
     if how == 'right':
         x, y = generate_right_turn(start_x = 0, start_y = 0, radius =  radius, angle = angle, strength = strength)

@@ -9,11 +9,12 @@ import matplotlib.pyplot as plt
 import os
 from torch.utils.tensorboard import SummaryWriter
 
-run_name = "128_neur"
+run_name = "128_neur+forward+Roberta"
 train_percentage = 0.8
 n_epochs = 40
 save_freq = 10
-hidden_size = 128
+fc_size1 = 256
+fc_size2 = 128
 
 X = np.load('./data/X.npy')
 y = np.load('./data/y.npy')
@@ -38,7 +39,7 @@ val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 # Params
 input_size = X.shape[1]
 output_size = y.shape[1]
-model = MLP(input_size, hidden_size, output_size)
+model = MLP(input_size, fc_size1, fc_size2, output_size)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 

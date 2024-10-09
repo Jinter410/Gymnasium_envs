@@ -120,7 +120,7 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
     return X, y
 
 if __name__ == "__main__":
-    model_name = "thenlper/gte-small"
+    model_name = "roberta-base"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
     X_left,y_left = generate("left", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=10000)

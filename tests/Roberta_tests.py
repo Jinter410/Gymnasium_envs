@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Charger le tokenizer et le modèle GTE Small
-model_name = "thenlper/gte-small"  # Modèle GTE Small
+# Charger le tokenizer et le modèle 
+model_name = "roberta-base"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModel.from_pretrained(model_name)
 
