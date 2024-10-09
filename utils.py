@@ -34,16 +34,24 @@ def manual_action() -> tuple:
 
 def generate_right_turn(start_x, start_y, radius, angle, strength, steps=100):
     t = np.linspace(0, np.radians(angle), steps)
-    # x = start_x + radius * (1 - np.cos(t)) * strength # NOTE : Original right turn with pyplot's Y axis
-    x = start_x - radius * (1 - np.cos(t)) * strength # NOTE : Right turn with inverted Y axis for pygame
-    y = start_y + radius * np.sin(t)
+    x = start_x + radius * np.sin(t)  # NOTE : Virage à droite avec l'axe Y inversé pour pygame
+    y = start_y + radius * (1 - np.cos(t)) * strength 
+    # y = start_y - radius * (1 - np.cos(t)) * strength  # NOTE : Virage à droite sans l'axe Y inversé
     return x, y
 
 def generate_left_turn(start_x, start_y, radius, angle, strength, steps=100):
     t = np.linspace(0, np.radians(angle), steps)
-    # x = start_x - radius * (1 - np.cos(t)) * strength # NOTE : Original left turn with pyplot's Y axis
-    x = start_x + radius * (1 - np.cos(t)) * strength # NOTE : Left turn with inverted Y axis for pygame
-    y = start_y + radius * np.sin(t)
+    x = start_x + radius * np.sin(t)  # NOTE : Virage à gauche avec l'axe Y inversé pour pygame
+    y = start_y - radius * (1 - np.cos(t)) * strength 
+    # y = start_y + radius * (1 - np.cos(t)) * strength  # NOTE : Virage à gauche sans l'axe Y inversé
+    return x, y
+
+
+def generate_forward(start_x, start_y, length, steps=100):
+    t = np.linspace(0, length, steps)
+    # x = start_x - t # NOTE : Original forward with pyplot's Y axis
+    x = start_x + t
+    y = start_y * np.ones(steps)
     return x, y
 
 def rotate_points(x, y, rotation_angle):
@@ -53,19 +61,22 @@ def rotate_points(x, y, rotation_angle):
     y_rot = x * sin_angle + y * cos_angle
     return x_rot, y_rot
 
-def generate_one_turn(robot_x, robot_y, how, inertia_angle, radius_min=2, radius_max=15, angle_min=70, angle_max=110, strength_min=0.5, strength_max=2, shift = False) -> tuple:
+def generate_one(robot_x, robot_y, how, inertia_angle, radius_min=2, radius_max=15, angle_min=70, angle_max=110, strength_min=0.5, strength_max=2, shift = False) -> tuple:
     # Turn parameters
     radius = np.random.uniform(radius_min, radius_max)  # Rayon de courbure
     angle = np.random.uniform(angle_min, angle_max)  # Angle de la courbe
     strength = np.random.uniform(strength_min, strength_max)  # Force de la courbe
+    length = np.random.uniform(3, 8)  # Longueur de la ligne droite
 
     if how == 'right':
         x, y = generate_right_turn(start_x = 0, start_y = 0, radius =  radius, angle = angle, strength = strength)
     elif how == 'left':
         x, y = generate_left_turn(start_x = 0, start_y = 0, radius = radius, angle = angle, strength = strength)
+    elif how == 'forward':
+        x, y = generate_forward(start_x = 0, start_y = 0, length = length)
 
     # Rotate turn to align it with the robot's direction
-    rotation_angle = inertia_angle - np.pi / 2
+    rotation_angle = inertia_angle
     x_rot, y_rot = rotate_points(x, y, rotation_angle)
 
     if shift:

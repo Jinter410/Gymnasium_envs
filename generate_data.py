@@ -8,7 +8,7 @@ import pygame
 from transformers import AutoTokenizer, AutoModel
 from tqdm import tqdm
 
-from utils import generate_one_turn, get_embeddings
+from utils import generate_one, get_embeddings
 
 INSTRUCTIONS = {
     "left": [
@@ -34,8 +34,21 @@ INSTRUCTIONS = {
         "Head to the right.",
         "Shift to the right.",
         "Angle right."
+    ],
+    "forward": [
+        "Move forward.",
+        "Go straight.",
+        "Proceed straight ahead.",
+        "Advance forward.",
+        "Head straight.",
+        "Continue forward.",
+        "Move ahead.",
+        "Keep going straight.",
+        "Walk straight ahead.",
+        "Progress forward."
     ]
 }
+
 
 
 def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, interceptor_percentage = 0.5, max_steps = 100, n_data =100, render_mode=None) -> Tuple[np.ndarray, np.ndarray]:
@@ -66,7 +79,7 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
         inertia_angle = observation[1]
         robot_x = env.get_wrapper_attr('agent_pos')[0]
         robot_y = env.get_wrapper_attr('agent_pos')[1]
-        x_rot, y_rot, radius, angle = generate_one_turn(robot_x, robot_y, how, inertia_angle)
+        x_rot, y_rot, radius, angle = generate_one(robot_x, robot_y, how, inertia_angle)
         # If the turn is out of bounds
         half_width = env.get_wrapper_attr('WIDTH') / 2
         half_height = env.get_wrapper_attr('HEIGHT') / 2
@@ -74,7 +87,7 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
 
         while np.any(x_rot < -half_width + phs) or np.any(x_rot > half_width - phs) or \
             np.any(y_rot < -half_height + phs) or np.any(y_rot > half_height - phs):
-            x_rot, y_rot, radius, angle = generate_one_turn(robot_x, robot_y, how, inertia_angle)
+            x_rot, y_rot, radius, angle = generate_one(robot_x, robot_y, how, inertia_angle)
         
         # Scattering
         indices = np.linspace(0, len(x_rot) - 1, disc_output, dtype=int)
@@ -112,7 +125,8 @@ if __name__ == "__main__":
     model = AutoModel.from_pretrained(model_name)
     X_left,y_left = generate("left", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=10000)
     X_right,y_right = generate("right", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=10000)
-    X = np.concat([X_left, X_right])
-    y = np.concat([y_left, y_right])
+    X_forward,y_forward = generate("forward", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=10000)
+    X = np.concat([X_left, X_right, X_forward])
+    y = np.concat([y_left, y_right, y_forward])
     np.save("./data/X.npy", X)
     np.save("./data/y.npy", y)
