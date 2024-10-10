@@ -49,7 +49,28 @@ INSTRUCTIONS = {
     ]
 }
 
+NUM_SAMPLES_PER_INSTRUCTION = 100
 
+def generate_sample(n_samples, env: gym.Env, robot_x: float, robot_y: float, inertia_angle: float, how: str, disc_output: int):
+    samples = np.zeros((n_samples, disc_output, 2))
+    for i in range(n_samples):
+        x_rot, y_rot, radius, angle = generate_one(robot_x, robot_y, how, inertia_angle)
+        # If the turn is out of bounds, regenerate
+        half_width = env.get_wrapper_attr('WIDTH') / 2
+        half_height = env.get_wrapper_attr('HEIGHT') / 2
+        phs = env.get_wrapper_attr('PHS')
+
+        while np.any(x_rot < -half_width + phs) or np.any(x_rot > half_width - phs) or \
+            np.any(y_rot < -half_height + phs) or np.any(y_rot > half_height - phs):
+            x_rot, y_rot, radius, angle = generate_one(robot_x, robot_y, how, inertia_angle)
+        
+        # Scattering
+        indices = np.linspace(0, len(x_rot) - 1, disc_output, dtype=int)
+        x_rot = x_rot[indices]
+        y_rot = y_rot[indices]
+
+        samples[i] = np.column_stack((x_rot, y_rot))
+    return samples
 
 def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, interceptor_percentage = 0.5, max_steps = 100, n_data =100, render_mode=None) -> Tuple[np.ndarray, np.ndarray]:
     pygame.init()
@@ -65,7 +86,7 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
     observation_size = env.observation_space.shape[0] + embeddings.shape[1]
     rot_size = disc_output * 2
     X = np.zeros((n_data, observation_size))
-    y = np.zeros((n_data, rot_size))
+    y = np.zeros((n_data, NUM_SAMPLES_PER_INSTRUCTION, rot_size))
 
     n_steps = np.random.randint(2, 5)
     for _ in tqdm(range(n_data)):
@@ -79,20 +100,8 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
         inertia_angle = observation[1]
         robot_x = env.get_wrapper_attr('agent_pos')[0]
         robot_y = env.get_wrapper_attr('agent_pos')[1]
-        x_rot, y_rot, radius, angle = generate_one(robot_x, robot_y, how, inertia_angle)
-        # If the turn is out of bounds
-        half_width = env.get_wrapper_attr('WIDTH') / 2
-        half_height = env.get_wrapper_attr('HEIGHT') / 2
-        phs = env.get_wrapper_attr('PHS')
-
-        while np.any(x_rot < -half_width + phs) or np.any(x_rot > half_width - phs) or \
-            np.any(y_rot < -half_height + phs) or np.any(y_rot > half_height - phs):
-            x_rot, y_rot, radius, angle = generate_one(robot_x, robot_y, how, inertia_angle)
         
-        # Scattering
-        indices = np.linspace(0, len(x_rot) - 1, disc_output, dtype=int)
-        x_rot = x_rot[indices]
-        y_rot = y_rot[indices]
+        samples_i = generate_sample(NUM_SAMPLES_PER_INSTRUCTION, env, robot_x, robot_y, inertia_angle, how, disc_output)
 
         #############################
         # plt.plot(x_rot, y_rot, label=f'Robot {i+1}: rayon={radius:.2f}, angle={angle:.2f}°')
@@ -112,8 +121,8 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
         #############################
         
         X[_] = np.concatenate([observation.flatten(), r_emb.flatten()])
-        zipped_points = np.array([coord for pair in zip(x_rot, y_rot) for coord in pair])
-        y[_] = zipped_points  # Utiliser les coordonnées zippées pour y
+        # zipped_points = np.array([coord for pair in zip(x_rot, y_rot) for coord in pair])
+        y[_] = samples_i.reshape(NUM_SAMPLES_PER_INSTRUCTION, -1)
         n_steps = np.random.randint(2, 5)
         
     env.close()

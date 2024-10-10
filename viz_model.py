@@ -103,8 +103,8 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
                 instruction = np.random.choice([
-                    "Go to left please",
-                    "Go to right please", "Go forward please"])
+                    "Turn left.",
+                    "Turn right.", "Move forward."])
                 print(f"Instruction: {instruction}")
                 # Obtenir l'embedding de l'instruction
                 embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
@@ -167,6 +167,6 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
 
 # Exemple d'appel à la fonction principale
 if __name__ == '__main__':
-    checkpoint_path = './models/128_neur+forward+Roberta/model_epoch_40.pth'  # Remplacer par le chemin de votre checkpoint
+    checkpoint_path = './models/256_128_neur+forward+Roberta+MinMSELoss/model_epoch_40.pth'  # Remplacer par le chemin de votre checkpoint
     model_name = "roberta-base"
     main(checkpoint_path, model_name)

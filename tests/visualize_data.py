@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 from utils import generate_one
 
 # N Robots visualisation
-num_robots = 10
+num_robots = 100
 robot_spawn = 10
 bounds = 20
 robot_positions = np.random.uniform(-robot_spawn, robot_spawn, (num_robots, 2))
@@ -19,10 +19,10 @@ for i in range(num_robots):
     robot_x, robot_y = robot_positions[i]
     inertia_angle = inertia_angles[i]
     
-    x_rot, y_rot,radius, angle = generate_one(robot_x, robot_y, 'forward', inertia_angle, shift=True)
+    x_rot, y_rot,radius, angle = generate_one(robot_x, robot_y, 'right', inertia_angle, shift=True)
     # If the turn is out of bounds
     while np.any(np.abs(x_rot) > bounds * 0.9) or np.any(np.abs(y_rot) > bounds * 0.9):
-        x_rot, y_rot, radius, angle = generate_one(robot_x, robot_y, 'forward', inertia_angle, shift=True)
+        x_rot, y_rot, radius, angle = generate_one(robot_x, robot_y, 'right', inertia_angle, shift=True)
 
     if scatter:
         indices = np.linspace(0, len(x_rot) - 1, 5, dtype=int)
