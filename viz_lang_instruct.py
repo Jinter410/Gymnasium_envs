@@ -107,9 +107,12 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
                 instruction = input("Enter something to do :")
                 # Obtenir l'embedding de l'instruction
                 embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
+
+                # Unnormalize the observation before feeding it to the MLP
+                unnormalized_obs = env.unnormalize_obs(observation)
                 
-                # Générer les points de sortie avec le modèle MLP
-                output = generate_turn_points(observation, embedding, mlp_model)
+                # Generate the output using the unnormalized observation
+                output = generate_turn_points(unnormalized_obs[0], embedding, mlp_model)
                 x_points = output[::2]
                 y_points = output[1::2]
                 x_robot, y_robot = env.envs[0].get_wrapper_attr('agent_pos')
