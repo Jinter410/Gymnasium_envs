@@ -4,8 +4,8 @@ from matplotlib import pyplot as plt
 from utils import generate_one
 
 # N Robots visualisation
-num_robots = 100
-robot_spawn = 10
+num_robots = 200
+robot_spawn = 0
 bounds = 20
 robot_positions = np.random.uniform(-robot_spawn, robot_spawn, (num_robots, 2))
 inertia_angles = np.random.uniform(-np.pi, np.pi, num_robots)

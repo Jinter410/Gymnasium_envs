@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 import os
 from torch.utils.tensorboard import SummaryWriter
 
-run_name = "256_128_neur+forward+Roberta+MinMSELoss"
+run_name = "256_128_neur+forward+Roberta+MedianMSELoss"
 train_percentage = 0.7
-n_epochs = 40
+n_epochs = 200
 save_freq = 10
 fc_size1 = 256
 fc_size2 = 128
@@ -32,7 +32,7 @@ val_size = len(dataset) - train_size
 train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
 # Dataloaders
-batch_size = 32
+batch_size = 128
 train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
@@ -41,7 +41,7 @@ input_size = X.shape[1]
 output_size = y.shape[-1]
 model = MLP(input_size, fc_size1, fc_size2, output_size)
 criterion = MinMSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.0005)
+optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
 # TensorBoard
 log_dir = f'./tensorboard_logs/{run_name}'

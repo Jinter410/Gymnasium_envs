@@ -125,7 +125,9 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
 
                 # Set the coordinate list in the environment
                 env.envs[0].unwrapped.set_coordinate_list(coordinates)
+                time.sleep(1)
                 env.render()
+                time.sleep(5)
 
                 ############################
                 # x_points_plot = x_robot + x_points
@@ -144,6 +146,7 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
 
                 # # Dessiner une flèche pour l'inertie
                 # arrow_length = 2
+            n_steps = np.random.randint(2, 5)
                 # plt.arrow(x_robot, y_robot, arrow_length * np.cos(inertia_angle), arrow_length * np.sin(inertia_angle),
                 #         head_width=0.5, head_length=0.5, fc='blue', ec='blue', label="Inertie")
 
@@ -167,6 +170,6 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
 
 # Exemple d'appel à la fonction principale
 if __name__ == '__main__':
-    checkpoint_path = './models/256_128_neur+forward+Roberta+MinMSELoss/model_epoch_40.pth'  # Remplacer par le chemin de votre checkpoint
+    checkpoint_path = './models/256_128_neur+forward+Roberta+MedianMSELoss/model_epoch_100.pth'  # Remplacer par le chemin de votre checkpoint
     model_name = "roberta-base"
     main(checkpoint_path, model_name)
