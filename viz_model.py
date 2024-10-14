@@ -175,6 +175,6 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
 
 # Exemple d'appel à la fonction principale
 if __name__ == '__main__':
-    checkpoint_path = './models/256_128_neur+forward+backwards+Roberta+MinMSELoss/model_epoch_100.pth'  # Remplacer par le chemin de votre checkpoint
+    checkpoint_path = './models/256_128_neur+forward+backwards+Roberta+MinMSELoss/model_epoch_200.pth'  # Remplacer par le chemin de votre checkpoint
     model_name = "roberta-base"
     main(checkpoint_path, model_name)

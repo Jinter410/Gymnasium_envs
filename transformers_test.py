@@ -312,42 +312,42 @@ def visualize_in_simulation(model, input_size, output_size):
 # ================================
 if __name__ == '__main__':
     # Train the transformer model and save it
-    # model, input_size, output_size = train_transformer_model()
+    model, input_size, output_size = train_transformer_model()
 
     # Optionally, if you want to load the model from the saved file instead of the trained model in memory
     # Data Loading
-    X = np.load('./data/X.npy')  # Shape: (num_samples, observation_size)
-    y = np.load('./data/y.npy')  # Shape: (num_samples, num_samples_per_instruction, output_size)
+    # X = np.load('./data/X.npy')  # Shape: (num_samples, observation_size)
+    # y = np.load('./data/y.npy')  # Shape: (num_samples, num_samples_per_instruction, output_size)
 
-    # Data Preparation
-    # Convert to tensors
-    X_tensor = torch.tensor(X, dtype=torch.float32)  # Shape: (num_samples, observation_size)
-    y_tensor = torch.tensor(y, dtype=torch.float32)  # Shape: (num_samples, num_samples_per_instruction, output_size)
+    # # Data Preparation
+    # # Convert to tensors
+    # X_tensor = torch.tensor(X, dtype=torch.float32)  # Shape: (num_samples, observation_size)
+    # y_tensor = torch.tensor(y, dtype=torch.float32)  # Shape: (num_samples, num_samples_per_instruction, output_size)
 
-    # Reshape X_tensor to (num_samples, seq_len, input_size)
-    # Here, seq_len = 1
-    X_tensor = X_tensor.unsqueeze(1)  # Shape: (num_samples, 1, observation_size)
+    # # Reshape X_tensor to (num_samples, seq_len, input_size)
+    # # Here, seq_len = 1
+    # X_tensor = X_tensor.unsqueeze(1)  # Shape: (num_samples, 1, observation_size)
 
-    # Dataset and DataLoader
-    dataset = TensorDataset(X_tensor, y_tensor)
+    # # Dataset and DataLoader
+    # dataset = TensorDataset(X_tensor, y_tensor)
 
-    # Split into train and validation sets
-    train_percentage = 0.7
-    train_size = int(train_percentage * len(dataset))
-    val_size = len(dataset) - train_size
-    train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+    # # Split into train and validation sets
+    # train_percentage = 0.7
+    # train_size = int(train_percentage * len(dataset))
+    # val_size = len(dataset) - train_size
+    # train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
-    batch_size = 128
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
+    # batch_size = 128
+    # train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    # val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 
-    # Model Parameters
-    input_size = X_tensor.size(-1)  # observation_size
-    output_size = y_tensor.size(-1)  # output_size
-    model_save_path = './transformer_model.pth'
-    model = TransformerModel(input_size, output_size, nhead=4, num_layers=3, dim_feedforward=512, dropout=0.1)
-    model.load_state_dict(torch.load(model_save_path))
-    model.eval()
+    # # Model Parameters
+    # input_size = X_tensor.size(-1)  # observation_size
+    # output_size = y_tensor.size(-1)  # output_size
+    # model_save_path = './transformer_model.pth'
+    # model = TransformerModel(input_size, output_size, nhead=4, num_layers=3, dim_feedforward=512, dropout=0.1)
+    # model.load_state_dict(torch.load(model_save_path))
+    # model.eval()
 
     # Visualize the model in the simulation environment
     visualize_in_simulation(model, input_size, output_size)
