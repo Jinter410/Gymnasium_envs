@@ -104,12 +104,14 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
             if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
                 instruction = np.random.choice([
                     "Turn left.",
-                    "Turn right.", "Move forward."])
+                    "Turn right.", 
+                    "Move forward.",
+                    "Move backwards."
+                    ])
                 print(f"Instruction: {instruction}")
                 # Obtenir l'embedding de l'instruction
                 embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
-    
-                # Unnormalize the observation before feeding it to the MLP
+
                 unnormalized_obs = env.unnormalize_obs(observation)
                 
                 # Generate the output using the unnormalized observation
@@ -130,7 +132,7 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
                 env.envs[0].unwrapped.set_coordinate_list(coordinates)
                 time.sleep(1)
                 env.render()
-                time.sleep(5)
+                time.sleep(1)
 
                 ############################
                 # x_points_plot = x_robot + x_points
@@ -173,6 +175,6 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
 
 # Exemple d'appel à la fonction principale
 if __name__ == '__main__':
-    checkpoint_path = './models/256_128_neur+forward+Roberta+MinMSELoss/model_epoch_100.pth'  # Remplacer par le chemin de votre checkpoint
+    checkpoint_path = './models/256_128_neur+forward+backwards+Roberta+MinMSELoss/model_epoch_100.pth'  # Remplacer par le chemin de votre checkpoint
     model_name = "roberta-base"
     main(checkpoint_path, model_name)

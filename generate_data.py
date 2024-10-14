@@ -46,6 +46,18 @@ INSTRUCTIONS = {
         "Keep going straight.",
         "Walk straight ahead.",
         "Progress forward."
+    ],
+    "backwards": [
+        "Move backwards.",
+        "Go back.",
+        "Proceed backward.",
+        "Advance backward.",
+        "Head backward.",
+        "Continue backward.",
+        "Move back.",
+        "Keep going backward.",
+        "Walk backward.",
+        "Progress backward."
     ]
 }
 
@@ -135,6 +147,7 @@ if __name__ == "__main__":
     X_left,y_left = generate("left", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=100)
     X_right,y_right = generate("right", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=100)
     X_forward,y_forward = generate("forward", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=100)
+    X_backwards,y_backwards = generate("backwards", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=100)
     X = np.concat([X_left, X_right, X_forward])
     y = np.concat([y_left, y_right, y_forward])
     np.save("./data/X_test.npy", X)

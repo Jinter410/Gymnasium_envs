@@ -8,8 +8,8 @@ X_test = np.load('./data/X_test.npy')  # Données d'observations
 y_test = np.load('./data/y_test.npy')  # Données de vérité terrain (trajectoires réelles)
 
 # Paramètres
-n_robots = 1  # Nombre de robots à afficher (modifier selon tes besoins)
-checkpoint_path = './models/256_128_neur+forward+Roberta+MedianMSELoss/model_epoch_200.pth'  # Chemin du checkpoint
+n_robots = 10  # Nombre de robots à afficher (modifier selon tes besoins)
+checkpoint_path = './models/256_128_neur+forward+backwards+Roberta+MinMSELoss/model_epoch_100.pth'  # Chemin du checkpoint
 
 # Paramètres du modèle
 input_size = X_test.shape[1]

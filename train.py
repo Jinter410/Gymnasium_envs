@@ -9,9 +9,9 @@ import matplotlib.pyplot as plt
 import os
 from torch.utils.tensorboard import SummaryWriter
 
-run_name = "256_128_neur+forward+Roberta+MedianMSELoss"
+run_name = "256_128_neur+forward+backwards+Roberta+MinMSELoss"
 train_percentage = 0.7
-n_epochs = 200
+n_epochs = 300
 save_freq = 10
 fc_size1 = 256
 fc_size2 = 128

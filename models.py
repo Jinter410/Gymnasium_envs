@@ -28,6 +28,6 @@ class MinMSELoss(nn.Module):
         # Outputs shape: (1, output_size), Target set shape: (1, num_targets, output_size)
         mse_losses = self.mse_loss(outputs.unsqueeze(1), target_set)  # Shape: (1, num_targets, output_size)
         mse_losses = mse_losses.mean(dim=-1)  # Mean over output_size, resulting in shape: (1, num_targets)
-        min_mse_loss = mse_losses.mediam(dim=1)[0]  # Minimum MSE over targets, shape: (1,)
+        min_mse_loss = mse_losses.min(dim=1)[0]  # Minimum MSE over targets, shape: (1,)
         return min_mse_loss.mean() # Mean over batch
 
