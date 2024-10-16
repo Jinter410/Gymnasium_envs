@@ -101,9 +101,10 @@ def generate_one(robot_x, robot_y, how, inertia_angle, radius_min=2, radius_max=
 
     return x_rot, y_rot, radius, angle
 
-def get_embeddings(model, tokenizer, sentences):
+def get_embeddings(model, tokenizer, sentences) -> np.ndarray:
+    model.eval()  # Set the model to evaluation mode
     inputs = tokenizer(sentences, padding=True, truncation=True, return_tensors="pt")
     with torch.no_grad():
         outputs = model(**inputs)
-        embeddings = outputs.last_hidden_state.mean(dim=1)  # Moyenne des embeddings de tokens pour chaque phrase
+        embeddings = outputs.last_hidden_state.mean(dim=1)  # Mean pooling over the sequence length
     return embeddings.cpu().numpy()

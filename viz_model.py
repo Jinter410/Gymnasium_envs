@@ -13,19 +13,13 @@ import pygame
 from typing import Tuple
 from tqdm import tqdm
 
-from utils import load_model
+from utils import load_model, get_embeddings
 
 def c2p(cart):
         r = np.linalg.norm(cart)
         theta = np.arctan2(cart[1], cart[0])
         return np.array([r, theta])
 
-def get_embeddings(model, tokenizer, sentences):
-    inputs = tokenizer(sentences, padding=True, truncation=True, return_tensors="pt")
-    with torch.no_grad():
-        outputs = model(**inputs)
-        embeddings = outputs.last_hidden_state.mean(dim=1)
-    return embeddings.cpu().numpy()
 
 def generate_turn_points(observation, embedding, model):
     # Concaténer les observations et l'embedding
@@ -61,7 +55,6 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
     done = False
     # Load model
     kwargs = {'n_rays': 40, 'max_steps': 150}
-
     kwargs['render_mode'] = 'human'
     model_path = "./navigation/results/sac_Nav40Rays/models/rl_model_999984_steps.zip"
     env_path = "./navigation/results/sac_Nav40Rays/models/rl_model_vecnormalize_999984_steps.pkl"
@@ -74,11 +67,9 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
         action, _states = model.predict(observation, deterministic=True)
         # After receiving the observation from env.step()
         observation, reward, done, info = env.step(action)
+
         if done:
             env.envs[0].unwrapped.set_coordinate_list([])
-
-        # Unnormalize the observation
-        unnormalized_obs = env.unnormalize_obs(observation)
         
         if len(objectives) > 0:
             curr_objective = objectives[0].copy()
@@ -89,6 +80,9 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
             curr_objective -= env.envs[0].get_wrapper_attr('agent_pos')
 
             curr_objective_polar = c2p(curr_objective)
+
+            # Unnormalize the observation
+            unnormalized_obs = env.unnormalize_obs(observation)
 
             # Inject the unnormalized waypoint into the unnormalized observation
             unnormalized_obs[0][2:4] = curr_objective_polar
@@ -104,18 +98,16 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
             if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
                 instruction = np.random.choice([
                     "Turn left.",
-                    "Turn right.", 
+                    "Turn right.",
                     "Move forward.",
                     "Move backwards."
                     ])
                 print(f"Instruction: {instruction}")
                 # Obtenir l'embedding de l'instruction
                 embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
-
-                unnormalized_obs = env.unnormalize_obs(observation)
                 
                 # Generate the output using the unnormalized observation
-                output = generate_turn_points(unnormalized_obs[0], embedding, mlp_model)
+                output = generate_turn_points(observation[0].flatten(), embedding.flatten(), mlp_model)
                 x_points = output[::2]
                 y_points = output[1::2]
                 x_robot, y_robot = env.envs[0].get_wrapper_attr('agent_pos')
@@ -151,7 +143,7 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
 
                 # # Dessiner une flèche pour l'inertie
                 # arrow_length = 2
-            n_steps = np.random.randint(2, 5)
+                
                 # plt.arrow(x_robot, y_robot, arrow_length * np.cos(inertia_angle), arrow_length * np.sin(inertia_angle),
                 #         head_width=0.5, head_length=0.5, fc='blue', ec='blue', label="Inertie")
 
@@ -175,6 +167,6 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
 
 # Exemple d'appel à la fonction principale
 if __name__ == '__main__':
-    checkpoint_path = './models/256_128_neur+forward+backwards+Roberta+MinMSELoss/model_epoch_200.pth'  # Remplacer par le chemin de votre checkpoint
+    checkpoint_path = './models/256_128_neur+forward+backwards+Roberta+MinMSELoss/model_epoch_200.pth'
     model_name = "roberta-base"
     main(checkpoint_path, model_name)

@@ -79,9 +79,6 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
         if done:
             env.envs[0].unwrapped.set_coordinate_list([])
 
-        # Unnormalize the observation
-        unnormalized_obs = env.unnormalize_obs(observation)
-        
         if len(objectives) > 0:
             curr_objective = objectives[0].copy()
 
@@ -91,6 +88,9 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
             curr_objective -= env.envs[0].get_wrapper_attr('agent_pos')
 
             curr_objective_polar = c2p(curr_objective)
+
+            # Unnormalize the observation
+            unnormalized_obs = env.unnormalize_obs(observation)
 
             # Inject the unnormalized waypoint into the unnormalized observation
             unnormalized_obs[0][2:4] = curr_objective_polar
@@ -107,12 +107,9 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
                 instruction = input("Enter something to do :")
                 # Obtenir l'embedding de l'instruction
                 embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
-
-                # Unnormalize the observation before feeding it to the MLP
-                unnormalized_obs = env.unnormalize_obs(observation)
                 
                 # Generate the output using the unnormalized observation
-                output = generate_turn_points(unnormalized_obs[0], embedding, mlp_model)
+                output = generate_turn_points(observation[0], embedding, mlp_model)
                 x_points = output[::2]
                 y_points = output[1::2]
                 x_robot, y_robot = env.envs[0].get_wrapper_attr('agent_pos')
@@ -169,6 +166,6 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
 
 # Exemple d'appel à la fonction principale
 if __name__ == '__main__':
-    checkpoint_path = './models/256_128_neur+forward+backwards+Roberta+MinMSELoss/model_epoch_300.pth'  # Remplacer par le chemin de votre checkpoint
+    checkpoint_path = './models/256_128_neur+forward+backwards+Roberta+MinMSELoss/model_epoch_200.pth'  # Remplacer par le chemin de votre checkpoint
     model_name = "roberta-base"
     main(checkpoint_path, model_name)

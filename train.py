@@ -11,13 +11,13 @@ from torch.utils.tensorboard import SummaryWriter
 
 run_name = "256_128_neur+forward+backwards+Roberta+MinMSELoss"
 train_percentage = 0.7
-n_epochs = 300
+n_epochs = 200
 save_freq = 10
 fc_size1 = 256
 fc_size2 = 128
 
-X = np.load('./data/X.npy')
-y = np.load('./data/y.npy')
+X = np.load('./data/X_normalized.npy')
+y = np.load('./data/y_normalized.npy')
 
 indices = np.random.permutation(X.shape[0])
 X = X[indices]

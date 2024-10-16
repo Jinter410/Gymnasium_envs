@@ -1,5 +1,7 @@
 from typing import Tuple
 import gymnasium as gym
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.vec_env import VecNormalize
 from matplotlib import pyplot as plt
 import numpy as np
 import torch
@@ -86,14 +88,25 @@ def generate_sample(n_samples, env: gym.Env, robot_x: float, robot_y: float, ine
 
 def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, interceptor_percentage = 0.5, max_steps = 100, n_data =100, render_mode=None) -> Tuple[np.ndarray, np.ndarray]:
     pygame.init()
+
+    env_path = "./navigation/results/sac_Nav40Rays/models/rl_model_vecnormalize_999984_steps.pkl"
+
     env_name = "Navigation-v0"
     if env_name == "Navigation-v0":
-        env = gym.make(env_name, n_rays=n_rays, max_steps=max_steps, render_mode=render_mode)
+        kwargs = {'n_rays': n_rays, 'max_steps': max_steps, 'render_mode': render_mode}
     else:
-        env = gym.make(env_name, n_rays=n_rays, n_crowd=n_crowd, interceptor_percentage=interceptor_percentage, max_steps=max_steps, render_mode=render_mode)
+        kwargs = {'n_rays': n_rays, 'n_crowd': n_crowd, 'interceptor_percentage': interceptor_percentage, 'max_steps': max_steps, 'render_mode': render_mode}
+ 
 
+    env = VecNormalize.load(env_path, make_vec_env(env_name, n_envs=1, env_kwargs=kwargs))
     sentences = INSTRUCTIONS[how]
-    embeddings = get_embeddings(model, tokenizer, sentences)
+    
+    embeddings = np.zeros((len(sentences), 768))
+    for i,sentence in enumerate(sentences):
+        embedding_i = get_embeddings(model, tokenizer, [sentence])
+        embeddings[i] = embedding_i
+
+    print(sentences,embeddings)
 
     observation_size = env.observation_space.shape[0] + embeddings.shape[1]
     rot_size = disc_output * 2
@@ -104,16 +117,19 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
     for _ in tqdm(range(n_data)):
         emb_i = np.random.choice(embeddings.shape[0], 1)
         r_emb = embeddings[emb_i]
+
         observation = env.reset()
         for i in range(n_steps):
-            action = env.action_space.sample()
-            observation, reward, done, truncated, info = env.step(action)
+            action = [env.action_space.sample()]
+            observation, reward, truncated, info = env.step(action)
             
-        inertia_angle = observation[1]
-        robot_x = env.get_wrapper_attr('agent_pos')[0]
-        robot_y = env.get_wrapper_attr('agent_pos')[1]
-        
-        samples_i = generate_sample(NUM_SAMPLES_PER_INSTRUCTION, env, robot_x, robot_y, inertia_angle, how, disc_output)
+        # Unnormalize only for the generate_sample function
+        unnormalized_observation = env.unnormalize_obs(observation)
+        inertia_angle = unnormalized_observation[0][1]
+        robot_x, robot_y = env.envs[0].get_wrapper_attr('agent_pos')
+
+        # Generate real-world coordinates with unnormalized values
+        samples_i = generate_sample(NUM_SAMPLES_PER_INSTRUCTION, env.envs[0], robot_x, robot_y, inertia_angle, how, disc_output)
 
         #############################
         # plt.plot(x_rot, y_rot, label=f'Robot {i+1}: rayon={radius:.2f}, angle={angle:.2f}°')
@@ -132,7 +148,7 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
         # quit()
         #############################
         
-        X[_] = np.concatenate([observation.flatten(), r_emb.flatten()])
+        X[_] = np.concatenate([observation[0].flatten(), r_emb.flatten()])
         # zipped_points = np.array([coord for pair in zip(x_rot, y_rot) for coord in pair])
         y[_] = samples_i.reshape(NUM_SAMPLES_PER_INSTRUCTION, -1)
         n_steps = np.random.randint(2, 5)
@@ -144,11 +160,11 @@ if __name__ == "__main__":
     model_name = "roberta-base"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
-    X_left,y_left = generate("left", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=100)
-    X_right,y_right = generate("right", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=100)
-    X_forward,y_forward = generate("forward", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=100)
-    X_backwards,y_backwards = generate("backwards", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=100)
+    X_right,y_right = generate("right", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=2000)
+    X_left,y_left = generate("left", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=2000)
+    X_forward,y_forward = generate("forward", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=2000)
+    X_backwards,y_backwards = generate("backwards", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=2000)
     X = np.concat([X_left, X_right, X_forward, X_backwards])
     y = np.concat([y_left, y_right, y_forward, y_backwards])
-    np.save("./data/X_test.npy", X)
-    np.save("./data/y_test.npy", y)
+    np.save("./data/X_normalized.npy", X)
+    np.save("./data/y_normalized.npy", y)
