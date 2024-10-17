@@ -31,3 +31,42 @@ class MinMSELoss(nn.Module):
         min_mse_loss = mse_losses.min(dim=1)[0]  # Minimum MSE over targets, shape: (1,)
         return min_mse_loss.mean() # Mean over batch
 
+class NormalizedMedianMSELoss(nn.Module):
+    def __init__(self, epsilon=1e-6):
+        super(NormalizedMedianMSELoss, self).__init__()
+        self.mse_loss = nn.MSELoss(reduction='none')  # Compute MSE without reduction
+        self.epsilon = epsilon  # Small value to prevent division by zero
+
+    
+    def forward(self, outputs, target_set):
+        # Outputs shape: (batch_size, output_size)
+        # Target set shape: (batch_size, num_targets, output_size)
+        batch_size, num_targets, output_size = target_set.shape
+
+        # Calculate MSE losses without reduction
+        mse_losses = self.mse_loss(outputs.unsqueeze(1), target_set)  # Shape: (batch_size, num_targets, output_size)
+        mse_losses = mse_losses.mean(dim=-1)  # Mean over output_size, resulting in shape: (batch_size, num_targets)
+
+        # Calculate total distances for each target in the target set
+        num_points = output_size // 2
+
+        # Reshape target_set to (batch_size, num_targets, num_points, 2)
+        target_set_points = target_set.view(batch_size, num_targets, num_points, 2)
+
+        # Calculate distances between consecutive points
+        distances = torch.norm(
+            target_set_points[:, :, 1:, :] - target_set_points[:, :, :-1, :],  # Differences between consecutive points
+            dim=-1
+        )  # Shape: (batch_size, num_targets, num_points - 1)
+
+        # Sum distances to get total distance per target
+        total_distances = distances.sum(dim=-1)  # Shape: (batch_size, num_targets)
+        total_distances = total_distances + self.epsilon
+
+        # Normalize mse_losses by total_distances
+        normalized_losses = mse_losses / total_distances
+
+        # Find minimum loss over targets
+        min_normalized_loss = normalized_losses.median(dim=1)[0]  # Shape: (batch_size,)
+
+        return min_normalized_loss.mean()
