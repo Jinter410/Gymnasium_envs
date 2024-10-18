@@ -104,60 +104,71 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
         # Vérifier si l'utilisateur appuie sur "C"
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
-                instruction = input("Enter something to do :")
-                # Obtenir l'embedding de l'instruction
-                embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
-                
-                # Generate the output using the unnormalized observation
-                output = generate_turn_points(observation[0], embedding, mlp_model)
-                x_points = output[::2]
-                y_points = output[1::2]
-                x_robot, y_robot = env.envs[0].get_wrapper_attr('agent_pos')
-                
-                x_points += x_robot
-                y_points += y_robot
-                coordinates = list(zip(x_points, y_points))
-                objectives = np.array(coordinates[1:])
-                # Remove points that are outside the map
-                objectives = objectives[objectives[:, 0] > -10]
-                objectives = objectives[objectives[:, 0] < 10]
+                instructions = [
+                    "Turn left.",
+                    "Make a wide left turn.",
+                    "Make a sharp left turn.",
+                    "Make a wide right turn.",
+                    "Make a sharp right turn.",
+                    "Turn right.",
+                    "Move forward.",
+                    "Move backwards."
+                    ]
+                for instruction in instructions:
+                    print(instruction)
+                    # Obtenir l'embedding de l'instruction
+                    embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
+                    
+                    # Generate the output using the unnormalized observation
+                    output = generate_turn_points(observation[0], embedding, mlp_model)
+                    x_points = output[::2]
+                    y_points = output[1::2]
+                    x_robot, y_robot = env.envs[0].get_wrapper_attr('agent_pos')
+                    
+                    x_points += x_robot
+                    y_points += y_robot
+                    coordinates = list(zip(x_points, y_points))
+                    objectives = np.array(coordinates[1:])
+                    # Remove points that are outside the map
+                    objectives = objectives[objectives[:, 0] > -10]
+                    objectives = objectives[objectives[:, 0] < 10]
 
-                # Set the coordinate list in the environment
-                env.envs[0].unwrapped.set_coordinate_list(coordinates)
-                env.render()
+                    # Set the coordinate list in the environment
+                    env.envs[0].unwrapped.set_coordinate_list(coordinates)
+                    env.render()
+                    time.sleep(2)
+                    ############################
+                    # x_points_plot = x_robot + x_points
+                    # y_points_plot = y_robot + y_points
+                    # # Obtenir l'inertie (angle) du robot
+                    # inertia_angle = observation[0][1] 
 
-                ############################
-                # x_points_plot = x_robot + x_points
-                # y_points_plot = y_robot + y_points
-                # # Obtenir l'inertie (angle) du robot
-                # inertia_angle = observation[0][1] 
+                    # # Plot simple avec matplotlib
+                    # plt.figure(figsize=(8, 8))
+                    # plt.plot(x_points_plot, y_points_plot, 'ro-', label="Trajectoire prédite")
+                    # plt.plot(x_robot, y_robot, 'go', markersize=10, label="Position du Robot")
 
-                # # Plot simple avec matplotlib
-                # plt.figure(figsize=(8, 8))
-                # plt.plot(x_points_plot, y_points_plot, 'ro-', label="Trajectoire prédite")
-                # plt.plot(x_robot, y_robot, 'go', markersize=10, label="Position du Robot")
+                    # # Ajouter des numéros aux points
+                    # for i, (x, y) in enumerate(zip(x_points_plot, y_points_plot)):
+                    #     plt.text(x, y, f'{i+1}', fontsize=12, ha='right')
 
-                # # Ajouter des numéros aux points
-                # for i, (x, y) in enumerate(zip(x_points_plot, y_points_plot)):
-                #     plt.text(x, y, f'{i+1}', fontsize=12, ha='right')
+                    # # Dessiner une flèche pour l'inertie
+                    # arrow_length = 2
+                    # plt.arrow(x_robot, y_robot, arrow_length * np.cos(inertia_angle), arrow_length * np.sin(inertia_angle),
+                    #         head_width=0.5, head_length=0.5, fc='blue', ec='blue', label="Inertie")
 
-                # # Dessiner une flèche pour l'inertie
-                # arrow_length = 2
-                # plt.arrow(x_robot, y_robot, arrow_length * np.cos(inertia_angle), arrow_length * np.sin(inertia_angle),
-                #         head_width=0.5, head_length=0.5, fc='blue', ec='blue', label="Inertie")
-
-                # # Configurer le plot
-                # plt.xlabel('Position X')
-                # plt.ylabel('Position Y')
-                # plt.title('Trajectoire du Robot avec Inertie')
-                # plt.grid(True)
-                # plt.legend()
-                # plt.xlim([-20, 20])
-                # plt.ylim([-20, 20])
-                # # Invert Y axis to match pygame's coordinate system
-                # plt.gca().invert_yaxis()
-                # plt.show()
-                ############################
+                    # # Configurer le plot
+                    # plt.xlabel('Position X')
+                    # plt.ylabel('Position Y')
+                    # plt.title('Trajectoire du Robot avec Inertie')
+                    # plt.grid(True)
+                    # plt.legend()
+                    # plt.xlim([-20, 20])
+                    # plt.ylim([-20, 20])
+                    # # Invert Y axis to match pygame's coordinate system
+                    # plt.gca().invert_yaxis()
+                    # plt.show()
+                    ############################
 
                 
                 
@@ -166,6 +177,6 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
 
 # Exemple d'appel à la fonction principale
 if __name__ == '__main__':
-    checkpoint_path = './models/256_128_neur+forward+backwards+Roberta+MinMSELoss/model_epoch_200.pth'  # Remplacer par le chemin de votre checkpoint
+    checkpoint_path = './models/256_128_neur+forward+backwards+sharp+Roberta+NormalizedMinMSELoss/model_epoch_200.pth'  # Remplacer par le chemin de votre checkpoint
     model_name = "roberta-base"
     main(checkpoint_path, model_name)

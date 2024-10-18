@@ -13,29 +13,41 @@ from tqdm import tqdm
 from utils import generate_one, get_embeddings
 
 INSTRUCTIONS = {
-    "left": [
-        "Turn left.",
-        "Rotate left.",
-        "Take a left turn.",
-        "Move leftward.",
-        "Steer to the left.",
-        "Swing left.",
-        "Adjust course to the left.",
-        "Head to the left.",
-        "Shift to the left.",
-        "Angle left."
+    "wide_left": [
+        "Make a wide left turn.",
+        "Turn left with a wide arc.",
+        "Take a broad left curve.",
+        "Swing widely to the left.",
+        "Steer left in a wide turn.",
+        "Make a large left turn.",
+        "Curve left with a wide path.",
     ],
-    "right": [
-        "Turn right.",
-        "Rotate right.",
-        "Take a right turn.",
-        "Move rightward.",
-        "Steer to the right.",
-        "Swing right.",
-        "Adjust course to the right.",
-        "Head to the right.",
-        "Shift to the right.",
-        "Angle right."
+    "sharp_left": [
+        "Make a sharp left turn.",
+        "Turn left sharply.",
+        "Take a quick left.",
+        "Swing abruptly to the left.",
+        "Steer left in a sharp turn.",
+        "Make a tight left turn.",
+        "Pivot sharply to the left."
+    ],
+    "wide_right": [
+        "Make a wide right turn.",
+        "Turn right with a wide arc.",
+        "Take a broad right curve.",
+        "Swing widely to the right.",
+        "Steer right in a wide turn.",
+        "Make a large right turn.",
+        "Curve right with a wide path.",
+    ],
+    "sharp_right": [
+        "Make a sharp right turn.",
+        "Turn right sharply.",
+        "Take a quick right.",
+        "Swing abruptly to the right.",
+        "Steer right in a sharp turn.",
+        "Make a tight right turn.",
+        "Pivot sharply to the right."
     ],
     "forward": [
         "Move forward.",
@@ -63,12 +75,55 @@ INSTRUCTIONS = {
     ]
 }
 
+PARAMETERS = {
+    'sharp_right': {
+        'radius_min': 2,
+        'radius_max': 7,
+        'angle_min': 90,
+        'angle_max': 120,
+        'strength_min': 0.5,
+        'strength_max': 1
+    },
+    'wide_right': {
+        'radius_min': 7,
+        'radius_max': 15,
+        'angle_min': 70,
+        'angle_max': 100,
+        'strength_min': 0.5,
+        'strength_max': 2
+    },
+    'sharp_left': {
+        'radius_min': 2,
+        'radius_max': 7,
+        'angle_min': 90,
+        'angle_max': 120,
+        'strength_min': 0.5,
+        'strength_max': 1
+    },
+    'wide_left': {
+        'radius_min': 7,
+        'radius_max': 15,
+        'angle_min': 70,
+        'angle_max': 100,
+        'strength_min': 0.5,
+        'strength_max': 2
+    },
+    'forward': {
+        'length_min': 5,
+        'length_max': 20
+    },
+    'backwards': {
+        'length_min': 5,
+        'length_max': 20
+    }
+}
+
 NUM_SAMPLES_PER_INSTRUCTION = 100
 
-def generate_sample(n_samples, env: gym.Env, robot_x: float, robot_y: float, inertia_angle: float, how: str, disc_output: int):
+def generate_sample(n_samples, env: gym.Env, robot_x: float, robot_y: float, inertia_angle: float, how: str, disc_output: int, **kwargs):
     samples = np.zeros((n_samples, disc_output, 2))
     for i in range(n_samples):
-        x_rot, y_rot, radius, angle = generate_one(robot_x, robot_y, how, inertia_angle)
+        x_rot, y_rot, radius, angle = generate_one(robot_x, robot_y, how, inertia_angle, **kwargs)
         # If the turn is out of bounds, regenerate
         half_width = env.get_wrapper_attr('WIDTH') / 2
         half_height = env.get_wrapper_attr('HEIGHT') / 2
@@ -76,7 +131,7 @@ def generate_sample(n_samples, env: gym.Env, robot_x: float, robot_y: float, ine
 
         while np.any(x_rot < -half_width + phs) or np.any(x_rot > half_width - phs) or \
             np.any(y_rot < -half_height + phs) or np.any(y_rot > half_height - phs):
-            x_rot, y_rot, radius, angle = generate_one(robot_x, robot_y, how, inertia_angle)
+            x_rot, y_rot, radius, angle = generate_one(robot_x, robot_y, how, inertia_angle,**kwargs)
         
         # Scattering
         indices = np.linspace(0, len(x_rot) - 1, disc_output, dtype=int)
@@ -106,12 +161,13 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
         embedding_i = get_embeddings(model, tokenizer, [sentence])
         embeddings[i] = embedding_i
 
-    print(sentences,embeddings)
-
     observation_size = env.observation_space.shape[0] + embeddings.shape[1]
     rot_size = disc_output * 2
     X = np.zeros((n_data, observation_size))
     y = np.zeros((n_data, NUM_SAMPLES_PER_INSTRUCTION, rot_size))
+
+    # Retrieve parameters for the current instruction
+    instruction_params = PARAMETERS.get(how, {})
 
     n_steps = np.random.randint(2, 5)
     for _ in tqdm(range(n_data)):
@@ -129,7 +185,7 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
         robot_x, robot_y = env.envs[0].get_wrapper_attr('agent_pos')
 
         # Generate real-world coordinates with unnormalized values
-        samples_i = generate_sample(NUM_SAMPLES_PER_INSTRUCTION, env.envs[0], robot_x, robot_y, inertia_angle, how, disc_output)
+        samples_i = generate_sample(NUM_SAMPLES_PER_INSTRUCTION, env.envs[0], robot_x, robot_y, inertia_angle, how, disc_output, **instruction_params)
 
         #############################
         # plt.plot(x_rot, y_rot, label=f'Robot {i+1}: rayon={radius:.2f}, angle={angle:.2f}°')
@@ -160,11 +216,18 @@ if __name__ == "__main__":
     model_name = "roberta-base"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
-    X_right,y_right = generate("right", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=2000)
-    X_left,y_left = generate("left", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=2000)
-    X_forward,y_forward = generate("forward", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=2000)
-    X_backwards,y_backwards = generate("backwards", model, tokenizer, disc_output = 5, n_rays= 40, max_steps=10, n_data=2000)
-    X = np.concat([X_left, X_right, X_forward, X_backwards])
-    y = np.concat([y_left, y_right, y_forward, y_backwards])
-    np.save("./data/X_normalized.npy", X)
-    np.save("./data/y_normalized.npy", y)
+
+    instruction_keys = ['sharp_right', 'wide_right', 'sharp_left', 'wide_left', 'forward', 'backwards']
+    X_list = []
+    y_list = []
+
+    for how in instruction_keys:
+        X_how, y_how = generate(how, model, tokenizer, disc_output=5, n_rays=40, max_steps=10, n_data=100)
+        X_list.append(X_how)
+        y_list.append(y_how)
+
+    X = np.concatenate(X_list)
+    y = np.concatenate(y_list)
+
+    np.save("./data/X_test_normalized.npy", X)
+    np.save("./data/y_test_normalized.npy", y)

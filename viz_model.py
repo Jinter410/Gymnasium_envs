@@ -98,6 +98,10 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
             if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
                 instruction = np.random.choice([
                     "Turn left.",
+                    "Make a wide left turn.",
+                    "Make a sharp left turn.",
+                    "Make a wide right turn.",
+                    "Make a sharp right turn.",
                     "Turn right.",
                     "Move forward.",
                     "Move backwards."
@@ -167,6 +171,6 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
 
 # Exemple d'appel à la fonction principale
 if __name__ == '__main__':
-    checkpoint_path = './models/256_128_neur+forward+backwards+Roberta+NormalizedMinMSELoss/model_epoch_200.pth'
+    checkpoint_path = './models/256_128_neur+forward+backwards+sharp+Roberta+NormalizedMinMSELoss/model_epoch_200.pth'
     model_name = "roberta-base"
     main(checkpoint_path, model_name)

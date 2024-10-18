@@ -67,6 +67,6 @@ class NormalizedMedianMSELoss(nn.Module):
         normalized_losses = mse_losses / total_distances
 
         # Find minimum loss over targets
-        min_normalized_loss = normalized_losses.median(dim=1)[0]  # Shape: (batch_size,)
+        min_normalized_loss = normalized_losses.min(dim=1)[0]  # Shape: (batch_size,)
 
         return min_normalized_loss.mean()

@@ -75,21 +75,34 @@ def rotate_points(x, y, rotation_angle):
     y_rot = x * sin_angle + y * cos_angle
     return x_rot, y_rot
 
-def generate_one(robot_x, robot_y, how, inertia_angle, radius_min=2, radius_max=15, angle_min=70, angle_max=110, strength_min=0.5, strength_max=2, shift = False) -> tuple:
-    # Turn parameters
-    radius = np.random.uniform(radius_min, radius_max)  # Rayon de courbure
-    angle = np.random.uniform(angle_min, angle_max)  # Angle de la courbe
-    strength = np.random.uniform(strength_min, strength_max)  # Force de la courbe
-    length = np.random.uniform(3, 10)  # Longueur de la ligne droite
+def generate_one(robot_x, robot_y, how, inertia_angle, shift=False, **kwargs) -> tuple:
+    # Default parameter ranges
+    radius_min = kwargs.get('radius_min', 2)
+    radius_max = kwargs.get('radius_max', 15)
+    angle_min = kwargs.get('angle_min', 70)
+    angle_max = kwargs.get('angle_max', 110)
+    strength_min = kwargs.get('strength_min', 0.5)
+    strength_max = kwargs.get('strength_max', 2)
+    length_min = kwargs.get('length_min', 3)
+    length_max = kwargs.get('length_max', 10)
 
-    if how == 'right':
-        x, y = generate_right_turn(start_x = 0, start_y = 0, radius =  radius, angle = angle, strength = strength)
-    elif how == 'left':
-        x, y = generate_left_turn(start_x = 0, start_y = 0, radius = radius, angle = angle, strength = strength)
+    # Generate turn parameters
+    radius = np.random.uniform(radius_min, radius_max)
+    angle = np.random.uniform(angle_min, angle_max)
+    strength = np.random.uniform(strength_min, strength_max)
+    length = np.random.uniform(length_min, length_max)
+
+    # Generate trajectory based on 'how'
+    if 'right' in how:
+        x, y = generate_right_turn(start_x=0, start_y=0, radius=radius, angle=angle, strength=strength)
+    elif 'left' in how:
+        x, y = generate_left_turn(start_x=0, start_y=0, radius=radius, angle=angle, strength=strength)
     elif how == 'forward':
-        x, y = generate_forward(start_x = 0, start_y = 0, length = length)
+        x, y = generate_forward(start_x=0, start_y=0, length=length)
     elif how == 'backwards':
-        x, y = generate_backwards(start_x = 0, start_y = 0, length = length)
+        x, y = generate_backwards(start_x=0, start_y=0, length=length)
+    else:
+        raise ValueError(f"Unknown instruction '{how}'")
 
     # Rotate turn to align it with the robot's direction
     rotation_angle = inertia_angle
