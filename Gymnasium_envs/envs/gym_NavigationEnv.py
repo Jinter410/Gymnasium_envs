@@ -239,14 +239,49 @@ class NavigationEnv(gym.Env):
         pygame.draw.circle(self.window, agent_color, agent_center, agent_radius)
         pygame.draw.line(self.window, (0, 150, 0), agent_center, arrow_pos, 3)
         
+        predefined_colors = [
+            (255, 165, 0),   # Orange
+            (197, 197, 8),   # Jaune
+            (255, 0, 0),     # Rouge
+            (8, 120, 224),   # Bleu
+            (85, 238, 243),  # Bleu ciel
+            (133, 11, 204),  # Violet
+            (0, 0, 0),       # Noir
+            (128, 128, 128)  # Gris
+        ]
+
         # Afficher les points s'ils existent
         if self.coordinate_list is not None:
-            point_color = (64, 0, 128)
-            for coord in self.coordinate_list:
-                point_x = int((coord[0] + self.W_BORDER) * self.RATIO)
-                point_y = int((coord[1] + self.H_BORDER) * self.RATIO)
+            if isinstance(self.coordinate_list, list):
+                point_color = (64, 0, 128)
+                for coord in self.coordinate_list:
+                    point_x = int((coord[0] + self.W_BORDER) * self.RATIO)
+                    point_y = int((coord[1] + self.H_BORDER) * self.RATIO)
+                    pygame.draw.circle(self.window, point_color, (point_x, point_y), 5)
 
-                pygame.draw.circle(self.window, point_color, (point_x, point_y), 5)
+            elif isinstance(self.coordinate_list, dict):
+                labels = list(self.coordinate_list.keys())
+                # Créer une correspondance entre les labels et les couleurs prédéfinies
+                label_color_mapping = {label: predefined_colors[i % len(predefined_colors)] for i, label in enumerate(labels)}
+
+                # Cadre pour afficher la légende
+                legend_rect = pygame.Rect(5, 5, 220, 18 + 18 * len(self.coordinate_list))
+                pygame.draw.rect(self.window, (233, 233, 233), legend_rect)
+                
+                # Affichage de la légende
+                font = pygame.font.SysFont(None, 24)
+                for i, (label, color) in enumerate(label_color_mapping.items()):
+                    label_surface = font.render(label, True, (0, 0, 0))
+                    pygame.draw.circle(self.window, color, (20, 20 + i * 20), 5)
+                    self.window.blit(label_surface, (30, 10 + i * 20))
+
+                # Affichage des points pour chaque trajectoire
+                for label, coordinates in self.coordinate_list.items():
+                    point_color = label_color_mapping[label]
+                    for coord in coordinates:
+                        point_x = int((coord[0] + self.W_BORDER) * self.RATIO)
+                        point_y = int((coord[1] + self.H_BORDER) * self.RATIO)
+                        pygame.draw.circle(self.window, point_color, (point_x, point_y), 5)
 
         
         pygame.display.flip()

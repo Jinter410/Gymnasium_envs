@@ -115,6 +115,7 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
                     "Move backwards."
                     ]
                 for instruction in instructions:
+                    instruction = input()
                     print(instruction)
                     # Obtenir l'embedding de l'instruction
                     embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
@@ -177,6 +178,6 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
 
 # Exemple d'appel à la fonction principale
 if __name__ == '__main__':
-    checkpoint_path = './models/256_128_neur+forward+backwards+sharp+Roberta+NormalizedMinMSELoss/model_epoch_200.pth'  # Remplacer par le chemin de votre checkpoint
+    checkpoint_path = './models/256_128_neur+forward+backwards+sharp+Roberta+NormalizedMinMSELoss_GENERALIZATION/model_epoch_200.pth'  # Remplacer par le chemin de votre checkpoint
     model_name = "roberta-base"
     main(checkpoint_path, model_name)

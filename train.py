@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from models import MLP, MinMSELoss, NormalizedMedianMSELoss
+from models import MLP, MinMSELoss, NormalizedMinMSELoss
 from torch.utils.data import DataLoader, TensorDataset, random_split
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -40,7 +40,7 @@ val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
 input_size = X.shape[1]
 output_size = y.shape[-1]
 model = MLP(input_size, fc_size1, fc_size2, output_size)
-criterion = NormalizedMedianMSELoss()
+criterion = NormalizedMinMSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
 # TensorBoard

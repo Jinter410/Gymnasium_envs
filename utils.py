@@ -61,7 +61,7 @@ def generate_forward(start_x, start_y, length, steps=100):
     y = start_y * np.ones(steps)
     return x, y
 
-def generate_backwards(start_x, start_y, length, steps=100):
+def generate_backward(start_x, start_y, length, steps=100):
     t = np.linspace(0, length, steps)
     # x = start_x + t # NOTE : Original forward with pyplot's Y axis
     x = start_x - t
@@ -99,8 +99,8 @@ def generate_one(robot_x, robot_y, how, inertia_angle, shift=False, **kwargs) ->
         x, y = generate_left_turn(start_x=0, start_y=0, radius=radius, angle=angle, strength=strength)
     elif how == 'forward':
         x, y = generate_forward(start_x=0, start_y=0, length=length)
-    elif how == 'backwards':
-        x, y = generate_backwards(start_x=0, start_y=0, length=length)
+    elif how == 'backward':
+        x, y = generate_backward(start_x=0, start_y=0, length=length)
     else:
         raise ValueError(f"Unknown instruction '{how}'")
 

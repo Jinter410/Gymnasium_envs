@@ -96,39 +96,42 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
         # Vérifier si l'utilisateur appuie sur "C"
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
-                instruction = np.random.choice([
+                instructions = dict()
+                for instruction in [
                     "Turn left.",
                     "Make a wide left turn.",
                     "Make a sharp left turn.",
+                    "Turn right.",
                     "Make a wide right turn.",
                     "Make a sharp right turn.",
-                    "Turn right.",
                     "Move forward.",
-                    "Move backwards."
-                    ])
-                print(f"Instruction: {instruction}")
-                # Obtenir l'embedding de l'instruction
-                embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
+                    "Move backward."
+                    ]:
                 
-                # Generate the output using the unnormalized observation
-                output = generate_turn_points(observation[0].flatten(), embedding.flatten(), mlp_model)
-                x_points = output[::2]
-                y_points = output[1::2]
-                x_robot, y_robot = env.envs[0].get_wrapper_attr('agent_pos')
-                
-                x_points += x_robot
-                y_points += y_robot
-                coordinates = list(zip(x_points, y_points))
-                objectives = np.array(coordinates[1:])
-                # Remove points that are outside the map
-                objectives = objectives[objectives[:, 0] > -10]
-                objectives = objectives[objectives[:, 0] < 10]
+                    print(f"Instruction: {instruction}")
+                    # Obtenir l'embedding de l'instruction
+                    embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
+                    
+                    # Generate the output using the unnormalized observation
+                    output = generate_turn_points(observation[0].flatten(), embedding.flatten(), mlp_model)
+                    x_points = output[::2]
+                    y_points = output[1::2]
+                    x_robot, y_robot = env.envs[0].get_wrapper_attr('agent_pos')
+                    
+                    x_points += x_robot
+                    y_points += y_robot
+                    coordinates = list(zip(x_points, y_points))
+                    objectives = np.array(coordinates[1:])
+                    # Remove points that are outside the map
+                    objectives = objectives[objectives[:, 0] > -10]
+                    objectives = objectives[objectives[:, 0] < 10]
+                    instructions[instruction] = coordinates
 
                 # Set the coordinate list in the environment
-                env.envs[0].unwrapped.set_coordinate_list(coordinates)
+                env.envs[0].unwrapped.set_coordinate_list(instructions)
                 time.sleep(1)
                 env.render()
-                time.sleep(1)
+                time.sleep(10)
 
                 ############################
                 # x_points_plot = x_robot + x_points
@@ -171,6 +174,6 @@ def main(checkpoint_path, nlp_model, env_name="Navigation-v0", n_rays=40, max_st
 
 # Exemple d'appel à la fonction principale
 if __name__ == '__main__':
-    checkpoint_path = './models/256_128_neur+forward+backwards+sharp+Roberta+NormalizedMinMSELoss/model_epoch_200.pth'
+    checkpoint_path = './models/256_128_neur+forward+backwards+sharp+Roberta+NormalizedMinMSELoss_GENERALIZATION/model_epoch_200.pth'
     model_name = "roberta-base"
     main(checkpoint_path, model_name)

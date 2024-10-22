@@ -31,9 +31,9 @@ class MinMSELoss(nn.Module):
         min_mse_loss = mse_losses.min(dim=1)[0]  # Minimum MSE over targets, shape: (1,)
         return min_mse_loss.mean() # Mean over batch
 
-class NormalizedMedianMSELoss(nn.Module):
+class NormalizedMinMSELoss(nn.Module):
     def __init__(self, epsilon=1e-6):
-        super(NormalizedMedianMSELoss, self).__init__()
+        super(NormalizedMinMSELoss, self).__init__()
         self.mse_loss = nn.MSELoss(reduction='none')  # Compute MSE without reduction
         self.epsilon = epsilon  # Small value to prevent division by zero
 

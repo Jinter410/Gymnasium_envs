@@ -125,7 +125,7 @@ def train_transformer_model():
     optimizer = optim.Adam(model.parameters(), lr=0.0001)
 
     # Training Loop
-    n_epochs = 100
+    n_epochs = 50
     train_losses = []
     val_losses = []
     progress_bar = tqdm(total=n_epochs, desc="Training Progress")
@@ -249,8 +249,6 @@ def visualize_in_simulation(model, input_size, output_size):
             if done:
                 env.envs[0].unwrapped.set_coordinate_list([])
 
-            # Unnormalize the observation
-            unnormalized_obs = env.unnormalize_obs(observation)
 
             if len(objectives) > 0:
                 curr_objective = objectives[0].copy()
@@ -261,6 +259,9 @@ def visualize_in_simulation(model, input_size, output_size):
                 curr_objective -= env.envs[0].get_wrapper_attr('agent_pos')
 
                 curr_objective_polar = c2p(curr_objective)
+
+                # Unnormalize the observation
+                unnormalized_obs = env.unnormalize_obs(observation)
 
                 # Inject the unnormalized waypoint into the unnormalized observation
                 unnormalized_obs[0][2:4] = curr_objective_polar
@@ -274,33 +275,40 @@ def visualize_in_simulation(model, input_size, output_size):
             # Check if the user presses "C"
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_c:
-                    instruction = input()
-                    print(f"Instruction: {instruction}")
-                    # Obtain the embedding of the instruction
-                    embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
+                    instructions = [
+                        "Turn left.",
+                        "Make a wide left turn.",
+                        "Make a sharp left turn.",
+                        "Make a wide right turn.",
+                        "Make a sharp right turn.",
+                        "Turn right.",
+                        "Move forward.",
+                        "Move backwards."
+                        ]
+                    for instruction in instructions:
+                        print(instruction)
+                        # Obtain the embedding of the instruction
+                        embedding = get_embeddings(text_model, tokenizer, [instruction])[0]
 
-                    # Unnormalize the observation before feeding it to the model
-                    unnormalized_obs = env.unnormalize_obs(observation)
+                        # Generate the output using the unnormalized observation and transformer model
+                        output = generate_turn_points(observation[0], embedding, model)
+                        x_points = output[::2]
+                        y_points = output[1::2]
+                        x_robot, y_robot = env.envs[0].get_wrapper_attr('agent_pos')
 
-                    # Generate the output using the unnormalized observation and transformer model
-                    output = generate_turn_points(unnormalized_obs[0], embedding, model)
-                    x_points = output[::2]
-                    y_points = output[1::2]
-                    x_robot, y_robot = env.envs[0].get_wrapper_attr('agent_pos')
+                        x_points += x_robot
+                        y_points += y_robot
+                        coordinates = list(zip(x_points, y_points))
+                        objectives = np.array(coordinates[1:])
+                        # Remove points that are outside the map
+                        objectives = objectives[(objectives[:, 0] > -10) & (objectives[:, 0] < 10)]
+                        objectives = objectives[(objectives[:, 1] > -10) & (objectives[:, 1] < 10)]
 
-                    x_points += x_robot
-                    y_points += y_robot
-                    coordinates = list(zip(x_points, y_points))
-                    objectives = np.array(coordinates[1:])
-                    # Remove points that are outside the map
-                    objectives = objectives[(objectives[:, 0] > -10) & (objectives[:, 0] < 10)]
-                    objectives = objectives[(objectives[:, 1] > -10) & (objectives[:, 1] < 10)]
-
-                    # Set the coordinate list in the environment
-                    env.envs[0].unwrapped.set_coordinate_list(coordinates)
-                    time.sleep(1)
-                    env.render()
-                    time.sleep(5)
+                        # Set the coordinate list in the environment
+                        env.envs[0].unwrapped.set_coordinate_list(coordinates)
+                        time.sleep(1)
+                        env.render()
+                        time.sleep(5)
 
         env.close()
 

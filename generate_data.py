@@ -1,3 +1,4 @@
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from typing import Tuple
 import gymnasium as gym
 from stable_baselines3.common.env_util import make_vec_env
@@ -13,6 +14,30 @@ from tqdm import tqdm
 from utils import generate_one, get_embeddings
 
 INSTRUCTIONS = {
+    "left": [
+        "Turn left.",
+        "Rotate left.",
+        "Take a left turn.",
+        "Move leftward.",
+        "Steer to the left.",
+        "Swing left.",
+        "Adjust course to the left.",
+        "Head to the left.",
+        "Shift to the left.",
+        "Angle left."
+    ],
+    "right": [
+        "Turn right.",
+        "Rotate right.",
+        "Take a right turn.",
+        "Move rightward.",
+        "Steer to the right.",
+        "Swing right.",
+        "Adjust course to the right.",
+        "Head to the right.",
+        "Shift to the right.",
+        "Angle right."
+    ],
     "wide_left": [
         "Make a wide left turn.",
         "Turn left with a wide arc.",
@@ -61,8 +86,8 @@ INSTRUCTIONS = {
         "Walk straight ahead.",
         "Progress forward."
     ],
-    "backwards": [
-        "Move backwards.",
+    "backward": [
+        "Move backward.",
         "Go back.",
         "Proceed backward.",
         "Advance backward.",
@@ -76,6 +101,22 @@ INSTRUCTIONS = {
 }
 
 PARAMETERS = {
+    'right': {
+        'radius_min': 2,
+        'radius_max': 15,
+        'angle_min': 70,
+        'angle_max': 110,
+        'strength_min': 0.5,
+        'strength_max': 2
+    },
+    'left': {
+        'radius_min': 2,
+        'radius_max': 15,
+        'angle_min': 70,
+        'angle_max': 110,
+        'strength_min': 0.5,
+        'strength_max': 2
+    },
     'sharp_right': {
         'radius_min': 2,
         'radius_max': 7,
@@ -112,7 +153,7 @@ PARAMETERS = {
         'length_min': 5,
         'length_max': 20
     },
-    'backwards': {
+    'backward': {
         'length_min': 5,
         'length_max': 20
     }
@@ -170,7 +211,7 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
     instruction_params = PARAMETERS.get(how, {})
 
     n_steps = np.random.randint(2, 5)
-    for _ in tqdm(range(n_data)):
+    for _ in range(n_data):
         emb_i = np.random.choice(embeddings.shape[0], 1)
         r_emb = embeddings[emb_i]
 
@@ -212,22 +253,45 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
     env.close()
     return X, y
 
-if __name__ == "__main__":
+def generate_wrapper(how, disc_output, n_rays, max_steps, n_data):
+    # Initialize the model and tokenizer within each process
     model_name = "roberta-base"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
+    
+    # Call the generate function with the initialized model and tokenizer
+    X_how, y_how = generate(how, model, tokenizer, disc_output=disc_output, n_rays=n_rays, max_steps=max_steps, n_data=n_data)
+    return X_how, y_how
 
-    instruction_keys = ['sharp_right', 'wide_right', 'sharp_left', 'wide_left', 'forward', 'backwards']
+if __name__ == "__main__":
+    instruction_keys = ['sharp_right', 'wide_right', 'sharp_left', 'wide_left', 'forward', 'backward']
     X_list = []
     y_list = []
+    
+    # Parameters
+    disc_output = 5
+    n_rays = 40
+    max_steps = 10
+    n_data = 2000  # Number of data samples per instruction
 
-    for how in instruction_keys:
-        X_how, y_how = generate(how, model, tokenizer, disc_output=5, n_rays=40, max_steps=10, n_data=100)
-        X_list.append(X_how)
-        y_list.append(y_how)
+    # Use ProcessPoolExecutor for parallel processing
+    with ProcessPoolExecutor() as executor:
+        # Submit tasks to the executor
+        futures = [
+            executor.submit(generate_wrapper, how, disc_output, n_rays, max_steps, n_data)
+            for how in instruction_keys
+        ]
 
+        # Collect the results as they complete
+        for future in tqdm(as_completed(futures), total=len(futures), desc="Processing"):
+            X_how, y_how = future.result()
+            X_list.append(X_how)
+            y_list.append(y_how)
+
+    # Concatenate the results
     X = np.concatenate(X_list)
     y = np.concatenate(y_list)
 
-    np.save("./data/X_test_normalized.npy", X)
-    np.save("./data/y_test_normalized.npy", y)
+    # Save the datasets
+    np.save("./data/X_normalized.npy", X)
+    np.save("./data/y_normalized.npy", y)
