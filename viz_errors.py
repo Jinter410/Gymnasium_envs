@@ -9,7 +9,7 @@ y_test = np.load('./data/y_test_normalized.npy')  # Données de vérité terrain
 
 # Paramètres
 n_robots = 20  # Nombre de robots à afficher (modifier selon tes besoins)
-checkpoint_path = './models/256_128_neur+forward+backwards+sharp+Roberta+NormalizedMinMSELoss/model_epoch_200.pth'  # Chemin du checkpoint
+checkpoint_path = './models/256_128_neur+forward+backwards+sharp+BERTSmall+NormalizedMinMSELoss/model_epoch_200.pth'  # Chemin du checkpoint
 
 # Paramètres du modèle
 input_size = X_test.shape[1]

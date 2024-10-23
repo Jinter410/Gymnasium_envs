@@ -197,7 +197,8 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
     env = VecNormalize.load(env_path, make_vec_env(env_name, n_envs=1, env_kwargs=kwargs))
     sentences = INSTRUCTIONS[how]
     
-    embeddings = np.zeros((len(sentences), 768))
+    embedding_test = get_embeddings(model, tokenizer, ["test"])
+    embeddings = np.zeros((len(sentences), embedding_test.shape[1]))
     for i,sentence in enumerate(sentences):
         embedding_i = get_embeddings(model, tokenizer, [sentence])
         embeddings[i] = embedding_i
@@ -255,7 +256,7 @@ def generate(how, model, tokenizer, disc_output = 5, n_rays=40, n_crowd=4, inter
 
 def generate_wrapper(how, disc_output, n_rays, max_steps, n_data):
     # Initialize the model and tokenizer within each process
-    model_name = "roberta-base"
+    model_name = "prajjwal1/bert-mini"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModel.from_pretrained(model_name)
     
@@ -272,7 +273,7 @@ if __name__ == "__main__":
     disc_output = 5
     n_rays = 40
     max_steps = 10
-    n_data = 2000  # Number of data samples per instruction
+    n_data = 100  # Number of data samples per instruction
 
     # Use ProcessPoolExecutor for parallel processing
     with ProcessPoolExecutor() as executor:
@@ -293,5 +294,5 @@ if __name__ == "__main__":
     y = np.concatenate(y_list)
 
     # Save the datasets
-    np.save("./data/X_normalized.npy", X)
-    np.save("./data/y_normalized.npy", y)
+    np.save("./data/X_test_normalized.npy", X)
+    np.save("./data/y_test_normalized.npy", y)
